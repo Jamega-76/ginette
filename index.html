@@ -187,9 +187,53 @@
   .stat-card.stat-today {
     border-color: var(--accent);
     background: var(--accent-light);
+    grid-column: span 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
   }
-  .stat-card.stat-today .stat-value {
+  .stat-card.stat-today .today-number {
+    font-size: 64px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
     color: #B8860B;
+    flex-shrink: 0;
+  }
+  .stat-card.stat-today .today-detail {
+    flex: 1;
+  }
+  .stat-card.stat-today .today-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9A7010;
+    margin-bottom: 6px;
+  }
+  .stat-card.stat-today .today-breakdown {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .stat-card.stat-today .today-type {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .stat-card.stat-today .today-type-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9A7010;
+    margin-top: 2px;
+  }
+  .stat-card.stat-today .today-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #9A7010;
+    line-height: 1.6;
   }
 
   .stat-card {
@@ -487,9 +531,21 @@
 <!-- Stats -->
 <div class="stats-strip" id="statsStrip">
   <div class="stat-card stat-today">
-    <div class="stat-label">Aujourd'hui</div>
-    <div class="stat-value" id="statToday">—</div>
-    <div class="stat-sub" id="statTodaySub">—</div>
+    <div class="today-number" id="statToday">—</div>
+    <div class="today-detail">
+      <div class="today-label">Publications aujourd'hui</div>
+      <div class="today-breakdown">
+        <div>
+          <div class="today-type" id="statTodayArticles" style="color:var(--article)">—</div>
+          <div class="today-type-label" style="color:var(--article)">Articles</div>
+        </div>
+        <div>
+          <div class="today-type" id="statTodayPodcasts" style="color:var(--podcast)">—</div>
+          <div class="today-type-label" style="color:var(--podcast)">Podcasts</div>
+        </div>
+      </div>
+      <div class="today-meta" id="statTodaySub">—</div>
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Total publications</div>
@@ -542,10 +598,7 @@ const DEFAULT_FEEDS = [
   { url: 'https://www.europe1.fr/rss.xml', type: 'article' },
 ];
 
-const PROXIES = [
-  { url: 'https://corsproxy.io/?', mode: 'direct' },
-  { url: 'https://api.allorigins.win/get?url=', mode: 'allorigins' },
-];
+const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 let feedRows = [];
 
@@ -606,51 +659,30 @@ function setLoading(pct) {
 }
 
 async function fetchFeed(url) {
-  let lastError;
-  for (const proxy of PROXIES) {
-    try {
-      let text;
-      if (proxy.mode === 'direct') {
-        const resp = await fetch(proxy.url + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        text = await resp.text();
-      } else {
-        const resp = await fetch(proxy.url + encodeURIComponent(url), { signal: AbortSignal.timeout(10000) });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        text = data.contents;
-      }
-      if (!text) throw new Error('Contenu vide');
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'application/xml');
-      if (xml.querySelector('parsererror')) throw new Error('XML invalide');
-      return xml;
-    } catch(e) {
-      lastError = e;
-    }
-  }
-  throw lastError;
+  const apiUrl = RSS2JSON + encodeURIComponent(url);
+  const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(12000) });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  if (data.status !== 'ok') throw new Error(data.message || 'Erreur API');
+  return data;
 }
 
-function parseItems(xml) {
-  const items = xml.querySelectorAll('item, entry');
+function parseItems(data) {
   const results = [];
-  items.forEach(item => {
-    const pubDate = item.querySelector('pubDate, published, updated');
-    if (!pubDate) return;
-    const dateStr = pubDate.textContent.trim();
+  (data.items || []).forEach(item => {
+    const dateStr = item.pubDate;
+    if (!dateStr) return;
     const d = new Date(dateStr);
     if (isNaN(d)) return;
-    const dayKey = d.toISOString().slice(0, 10);
-    const title = (item.querySelector('title')?.textContent || '').trim();
-    results.push({ date: dayKey, title, dateObj: d });
+    // Use local date (Paris timezone)
+    const dayKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    results.push({ date: dayKey, title: item.title || '', dateObj: d });
   });
   return results;
 }
 
-function getFeedTitle(xml, fallbackUrl) {
-  const title = xml.querySelector('channel > title, feed > title');
-  return title ? title.textContent.trim() : fallbackUrl;
+function getFeedTitle(data, fallbackUrl) {
+  return data.feed?.title || fallbackUrl;
 }
 
 async function fetchAll() {
@@ -702,17 +734,21 @@ async function fetchAll() {
 }
 
 function renderDashboard(allData, sources) {
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const analysisTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const analysisDate = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
   const todayData = allData.filter(x => x.date === todayKey);
   const todayArticles = todayData.filter(x => x.type === 'article').length;
   const todayPodcasts = todayData.filter(x => x.type === 'podcast').length;
   const todayTotal = todayData.length;
 
   document.getElementById('statToday').textContent = todayTotal || '0';
-  document.getElementById('statTodaySub').textContent = 
-    todayTotal > 0 
-      ? `${todayArticles} article${todayArticles>1?'s':''} · ${todayPodcasts} podcast${todayPodcasts>1?'s':''}` 
-      : 'aucune publication';
+  document.getElementById('statTodayArticles').textContent = todayArticles;
+  document.getElementById('statTodayPodcasts').textContent = todayPodcasts;
+  document.getElementById('statTodaySub').innerHTML = 
+    `${analysisDate} · Analysé à ${analysisTime}`;
 
   // Group by day
   const byDay = {};
