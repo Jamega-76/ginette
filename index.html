@@ -176,103 +176,77 @@
   /* Stats strip */
   .stats-strip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
     opacity: 0;
     transition: opacity 0.4s;
   }
   .stats-strip.visible { opacity: 1; }
 
-  .stat-card.stat-today {
-    border-color: var(--accent);
-    background: var(--accent-light);
-    grid-column: span 2;
-    flex-direction: row;
-    align-items: center;
-    gap: 24px;
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .stat-card.stat-today .today-number {
-    font-size: 64px;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    line-height: 1;
-    color: #B8860B;
-    flex-shrink: 0;
-  }
-  .stat-card.stat-today .today-detail {
-    flex: 1;
-  }
-  .stat-card.stat-today .today-label {
+
+  .stat-card.stat-today { border-color: var(--accent); background: var(--accent-light); }
+  .stat-card.stat-today .stat-big { color: #9A6F00; }
+
+  .stat-card.stat-yesterday { border-color: var(--border); }
+  .stat-card.stat-yesterday .stat-big { color: var(--ink); }
+
+  .stat-card.stat-avg { border-color: var(--border); }
+  .stat-card.stat-avg .stat-big { color: var(--ink-muted); }
+
+  .stat-card-label {
     font-size: 10px;
     font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #9A7010;
-    margin-bottom: 6px;
-  }
-  .stat-card.stat-today .today-breakdown {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 8px;
-  }
-  .stat-card.stat-today .today-type {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .stat-card.stat-today .today-type-label {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #9A7010;
-    margin-top: 2px;
-  }
-  .stat-card.stat-today .today-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: #9A7010;
-    line-height: 1.6;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 22px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .stat-label {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     color: var(--ink-muted);
   }
 
-  .stat-value {
-    font-size: 36px;
+  .stat-big {
+    font-size: 52px;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
     line-height: 1;
   }
 
-  .stat-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--ink-muted);
+  .stat-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  /* Chart area */
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .pill-article { background: var(--article-light); color: var(--article); }
+  .pill-podcast  { background: var(--podcast-light); color: var(--podcast); }
+
+  .stat-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+
+  /* 5-day grid chart */
   .chart-section {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 32px;
+    padding: 28px 32px;
     margin-bottom: 24px;
     opacity: 0;
     transition: opacity 0.4s 0.1s;
@@ -283,11 +257,11 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
 
   .chart-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.01em;
   }
@@ -299,130 +273,85 @@
     margin-top: 4px;
   }
 
-  .legend {
-    display: flex;
-    gap: 20px;
-  }
-
+  .legend { display: flex; gap: 18px; }
   .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--ink-muted);
   }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
 
-  .legend-dot {
-    width: 8px; height: 8px;
-    border-radius: 2px;
+  .five-day-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
   }
 
-  /* Bar chart */
-  .bar-chart-wrap {
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .bar-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    min-width: 100%;
-    height: 200px;
-    padding-bottom: 32px;
-    position: relative;
-  }
-
-  .bar-chart::after {
-    content: '';
-    position: absolute;
-    bottom: 32px; left: 0; right: 0;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .bar-group {
-    flex: 1;
-    min-width: 32px;
+  .day-col {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 16px 14px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    height: 100%;
-    justify-content: flex-end;
-    position: relative;
+    gap: 10px;
   }
 
-  .bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    width: 100%;
-    justify-content: center;
+  .day-col.today {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
   }
 
-  .bar-group.today .bars .bar { filter: brightness(1.15); }
-  .bar-group.today .bar-date {
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .bar-group.today::before {
-    content: '▼';
-    position: absolute;
-    top: -18px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 8px;
-    color: var(--accent);
-  }
-
-  .bar {
-    width: 44%;
-    border-radius: 3px 3px 0 0;
-    transition: opacity 0.2s;
-    cursor: default;
-    min-height: 2px;
-    position: relative;
-  }
-
-  .bar:hover::after {
-    content: attr(data-value);
-    position: absolute;
-    top: -22px;
-    left: 50%;
-    transform: translateX(-50%);
+  .day-col-date {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
-    background: var(--ink);
-    color: var(--bg);
-    padding: 2px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-
-  .bar-article { background: var(--article); }
-  .bar-podcast { background: var(--podcast); }
-
-  .bar-date {
-    position: absolute;
-    bottom: -26px;
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
     color: var(--ink-muted);
-    text-align: center;
-    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
-  /* Source list */
+  .day-col.today .day-col-date {
+    color: #9A6F00;
+    font-weight: 700;
+  }
+
+  .day-col-total {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .day-col.today .day-col-total { color: #9A6F00; }
+
+  .day-col-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .day-col-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+  }
+
+  .day-col-line .type-dot {
+    width: 6px; height: 6px; border-radius: 1px; flex-shrink: 0;
+  }
+
+  .day-col-line .type-label { color: var(--ink-muted); flex: 1; margin-left: 5px; }
+  .day-col-line .type-count { font-weight: 700; color: var(--ink); }
+
+  /* Sources */
   .sources-section {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 32px;
+    padding: 28px 32px;
     opacity: 0;
     transition: opacity 0.4s 0.2s;
   }
@@ -434,14 +363,14 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--ink-muted);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .source-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 0;
+    padding: 12px 0;
     border-bottom: 1px solid var(--border);
     gap: 16px;
   }
@@ -466,7 +395,6 @@
   .source-count {
     font-family: 'DM Mono', monospace;
     font-size: 12px;
-    font-weight: 400;
     color: var(--ink-muted);
     text-align: right;
     white-space: nowrap;
@@ -530,61 +458,55 @@
 
 <!-- Stats -->
 <div class="stats-strip" id="statsStrip">
+
+  <!-- Aujourd'hui -->
   <div class="stat-card stat-today">
-    <div class="today-number" id="statToday">—</div>
-    <div class="today-detail">
-      <div class="today-label">Publications aujourd'hui</div>
-      <div class="today-breakdown">
-        <div>
-          <div class="today-type" id="statTodayArticles" style="color:var(--article)">—</div>
-          <div class="today-type-label" style="color:var(--article)">Articles</div>
-        </div>
-        <div>
-          <div class="today-type" id="statTodayPodcasts" style="color:var(--podcast)">—</div>
-          <div class="today-type-label" style="color:var(--podcast)">Podcasts</div>
-        </div>
-      </div>
-      <div class="today-meta" id="statTodaySub">—</div>
+    <div class="stat-card-label">Aujourd'hui</div>
+    <div class="stat-big" id="statToday">—</div>
+    <div class="stat-breakdown">
+      <span class="pill pill-article" id="statTodayArticles">— articles</span>
+      <span class="pill pill-podcast" id="statTodayPodcasts">— podcasts</span>
     </div>
+    <div class="stat-meta" id="statTodayMeta">—</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Total publications</div>
-    <div class="stat-value" id="statTotal">—</div>
-    <div class="stat-sub" id="statPeriod">—</div>
+
+  <!-- Hier -->
+  <div class="stat-card stat-yesterday">
+    <div class="stat-card-label">Hier</div>
+    <div class="stat-big" id="statYesterday">—</div>
+    <div class="stat-breakdown">
+      <span class="pill pill-article" id="statYesterdayArticles">— articles</span>
+      <span class="pill pill-podcast" id="statYesterdayPodcasts">— podcasts</span>
+    </div>
+    <div class="stat-meta" id="statYesterdayMeta">—</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Articles</div>
-    <div class="stat-value" id="statArticles" style="color: var(--article)">—</div>
-    <div class="stat-sub" id="statArticlesSub">—</div>
+
+  <!-- Moyenne 5 jours -->
+  <div class="stat-card stat-avg">
+    <div class="stat-card-label">Moyenne · 5 derniers jours</div>
+    <div class="stat-big" id="statAvg">—</div>
+    <div class="stat-breakdown">
+      <span class="pill pill-article" id="statAvgArticles">— articles</span>
+      <span class="pill pill-podcast" id="statAvgPodcasts">— podcasts</span>
+    </div>
+    <div class="stat-meta" id="statAvgMeta">—</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Épisodes podcast</div>
-    <div class="stat-value" id="statPodcasts" style="color: var(--podcast)">—</div>
-    <div class="stat-sub" id="statPodcastsSub">—</div>
-  </div>
+
 </div>
 
-<!-- Chart -->
+<!-- Graphique 5 jours -->
 <div class="chart-section" id="chartSection">
   <div class="chart-header">
     <div>
-      <div class="chart-title">Publications par jour</div>
+      <div class="chart-title">5 derniers jours</div>
       <div class="chart-subtitle" id="chartSubtitle">—</div>
     </div>
     <div class="legend">
-      <div class="legend-item">
-        <div class="legend-dot" style="background: var(--article)"></div>
-        Articles
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background: var(--podcast)"></div>
-        Podcasts
-      </div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--article)"></div>Articles</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--podcast)"></div>Podcasts</div>
     </div>
   </div>
-  <div class="bar-chart-wrap">
-    <div class="bar-chart" id="barChart"></div>
-  </div>
+  <div class="five-day-grid" id="fiveDayGrid"></div>
 </div>
 
 <!-- Sources -->
@@ -676,20 +598,22 @@ async function fetchFeed(url) {
 
 function parseItems(xml) {
   const results = [];
-  // RSS 2.0 : <item> avec <pubDate>
-  // Atom : <entry> avec <published> ou <updated>
   const items = xml.querySelectorAll('item, entry');
   items.forEach(item => {
-    const dateNode = item.querySelector('pubDate') 
-                  || item.querySelector('published') 
+    const dateNode = item.querySelector('pubDate')
+                  || item.querySelector('published')
                   || item.querySelector('updated');
     if (!dateNode) return;
-    const dateStr = dateNode.textContent.trim();
-    const d = new Date(dateStr);
+    const d = new Date(dateNode.textContent.trim());
     if (isNaN(d)) return;
     const dayKey = toParisDateKey(d);
     const title = item.querySelector('title')?.textContent?.trim() || '';
-    results.push({ date: dayKey, title, dateObj: d });
+    // Détection podcast : enclosure avec type audio ou url .mp3
+    const enclosure = item.querySelector('enclosure');
+    const encType = enclosure?.getAttribute('type') || '';
+    const encUrl  = enclosure?.getAttribute('url')  || '';
+    const isPodcast = encType.startsWith('audio') || encUrl.includes('.mp3');
+    results.push({ date: dayKey, title, dateObj: d, isPodcast });
   });
   return results;
 }
@@ -724,8 +648,12 @@ async function fetchAll() {
       const xml = await fetchFeed(f.url);
       const title = getFeedTitle(xml, f.url);
       const items = parseItems(xml);
-      console.log(`[${title}] ${items.length} items trouvés. Premiers dates:`, items.slice(0,3).map(i => i.date + ' ' + i.title.slice(0,30)));
-      items.forEach(it => allData.push({ ...it, type: f.type, source: title }));
+      // isPodcast : détection auto via mp3, sinon fallback sur le type choisi par l'utilisateur
+      items.forEach(it => {
+        const type = it.isPodcast ? 'podcast' : (f.type === 'podcast' ? 'podcast' : 'article');
+        allData.push({ ...it, type, source: title });
+      });
+      console.log(`[${title}] ${items.length} items`, items.slice(0,3).map(i => i.date + ' ' + (i.isPodcast?'🎙':'📰') + ' ' + i.title.slice(0,30)));
       sources.push({ title, type: f.type, count: items.length, url: f.url });
     } catch(e) {
       sources.push({ title: f.url, type: f.type, count: 0, error: e.message, url: f.url });
@@ -748,80 +676,86 @@ async function fetchAll() {
   setTimeout(() => setLoading(0), 600);
 }
 
+function dayStats(allData, key) {
+  const d = allData.filter(x => x.date === key);
+  return {
+    total: d.length,
+    articles: d.filter(x => x.type === 'article').length,
+    podcasts: d.filter(x => x.type === 'podcast').length,
+  };
+}
+
+function offsetDay(baseKey, offset) {
+  const d = new Date(baseKey + 'T12:00:00');
+  d.setDate(d.getDate() + offset);
+  return toParisDateKey(d);
+}
+
 function renderDashboard(allData, sources) {
   const now = new Date();
-  const todayKey = toParisDateKey(now);
+  const todayKey     = toParisDateKey(now);
+  const yesterdayKey = offsetDay(todayKey, -1);
   const analysisTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const analysisDate = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const todayData = allData.filter(x => x.date === todayKey);
-  const todayArticles = todayData.filter(x => x.type === 'article').length;
-  const todayPodcasts = todayData.filter(x => x.type === 'podcast').length;
-  const todayTotal = todayData.length;
+  // Today
+  const td = dayStats(allData, todayKey);
+  document.getElementById('statToday').textContent = td.total;
+  document.getElementById('statTodayArticles').textContent = `${td.articles} article${td.articles !== 1 ? 's' : ''}`;
+  document.getElementById('statTodayPodcasts').textContent = `${td.podcasts} podcast${td.podcasts !== 1 ? 's' : ''}`;
+  document.getElementById('statTodayMeta').textContent = `${analysisDate} · ${analysisTime}`;
 
-  document.getElementById('statToday').textContent = todayTotal || '0';
-  document.getElementById('statTodayArticles').textContent = todayArticles;
-  document.getElementById('statTodayPodcasts').textContent = todayPodcasts;
-  document.getElementById('statTodaySub').innerHTML = 
-    `${analysisDate} · Analysé à ${analysisTime}`;
+  // Yesterday
+  const yd = dayStats(allData, yesterdayKey);
+  document.getElementById('statYesterday').textContent = yd.total;
+  document.getElementById('statYesterdayArticles').textContent = `${yd.articles} article${yd.articles !== 1 ? 's' : ''}`;
+  document.getElementById('statYesterdayPodcasts').textContent = `${yd.podcasts} podcast${yd.podcasts !== 1 ? 's' : ''}`;
+  document.getElementById('statYesterdayMeta').textContent = formatDateLong(yesterdayKey);
 
-  // Group by day
-  const byDay = {};
-  allData.forEach(item => {
-    if (!byDay[item.date]) byDay[item.date] = { articles: 0, podcasts: 0 };
-    if (item.type === 'article') byDay[item.date].articles++;
-    else byDay[item.date].podcasts++;
-  });
-
-  const days = Object.keys(byDay).sort();
-  const totalArticles = allData.filter(x => x.type === 'article').length;
-  const totalPodcasts = allData.filter(x => x.type === 'podcast').length;
-  const total = allData.length;
-
-  // Stats strip
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statArticles').textContent = totalArticles;
-  document.getElementById('statPodcasts').textContent = totalPodcasts;
-
-  if (days.length > 0) {
-    const first = formatDateShort(days[0]);
-    const last = formatDateShort(days[days.length - 1]);
-    document.getElementById('statPeriod').textContent = `${first} → ${last}`;
-    document.getElementById('chartSubtitle').textContent = `${days.length} jours · ${first} → ${last}`;
-  }
-  const avgA = (totalArticles / Math.max(days.length, 1)).toFixed(1);
-  const avgP = (totalPodcasts / Math.max(days.length, 1)).toFixed(1);
-  document.getElementById('statArticlesSub').textContent = `moy. ${avgA}/jour`;
-  document.getElementById('statPodcastsSub').textContent = `moy. ${avgP}/jour`;
+  // 5-day average (yesterday back 4 more days = 5 days total, excludes today)
+  const last5Keys = [0,-1,-2,-3,-4].map(o => offsetDay(yesterdayKey, o));
+  const last5 = last5Keys.map(k => dayStats(allData, k));
+  const avgTotal    = (last5.reduce((s,d) => s + d.total,    0) / 5).toFixed(1);
+  const avgArticles = (last5.reduce((s,d) => s + d.articles, 0) / 5).toFixed(1);
+  const avgPodcasts = (last5.reduce((s,d) => s + d.podcasts, 0) / 5).toFixed(1);
+  document.getElementById('statAvg').textContent = avgTotal;
+  document.getElementById('statAvgArticles').textContent = `${avgArticles} articles`;
+  document.getElementById('statAvgPodcasts').textContent = `${avgPodcasts} podcasts`;
+  document.getElementById('statAvgMeta').textContent =
+    `${formatDateLong(last5Keys[4])} → ${formatDateLong(last5Keys[0])}`;
 
   // Header
-  document.getElementById('headerMeta').innerHTML = 
-    `${sources.length} flux · ${total} publications<br>${days.length > 0 ? formatDateShort(days[0]) + ' → ' + formatDateShort(days[days.length-1]) : ''}`;
+  document.getElementById('headerMeta').innerHTML =
+    `${sources.length} flux · Analysé à ${analysisTime}`;
+  document.getElementById('chartSubtitle').textContent =
+    `${formatDateLong(last5Keys[4])} → ${analysisDate}`;
 
-  // Bar chart — last 30 days max
-  const chartDays = days.slice(-30);
-  const maxVal = Math.max(...chartDays.map(d => byDay[d].articles + byDay[d].podcasts), 1);
-
-  const chartEl = document.getElementById('barChart');
-  chartEl.innerHTML = '';
-
-  chartDays.forEach(day => {
-    const d = byDay[day];
-    const totalDay = d.articles + d.podcasts;
-    const pctArticle = (d.articles / maxVal) * 160;
-    const pctPodcast = (d.podcasts / maxVal) * 160;
-
-    const isToday = day === todayKey;
-    const group = document.createElement('div');
-    group.className = 'bar-group' + (isToday ? ' today' : '');
-    group.innerHTML = `
-      <div class="bars">
-        <div class="bar bar-article" data-value="${d.articles} article${d.articles>1?'s':''}" style="height:${Math.max(pctArticle,2)}px"></div>
-        <div class="bar bar-podcast" data-value="${d.podcasts} podcast${d.podcasts>1?'s':''}" style="height:${Math.max(pctPodcast,2)}px"></div>
+  // 5-day grid (last 4 days + today)
+  const gridKeys = [offsetDay(todayKey,-4), offsetDay(todayKey,-3), offsetDay(todayKey,-2), yesterdayKey, todayKey];
+  const grid = document.getElementById('fiveDayGrid');
+  grid.innerHTML = '';
+  gridKeys.forEach(key => {
+    const s = dayStats(allData, key);
+    const isToday = key === todayKey;
+    const col = document.createElement('div');
+    col.className = 'day-col' + (isToday ? ' today' : '');
+    col.innerHTML = `
+      <div class="day-col-date">${isToday ? '— Aujourd\'hui' : formatDateLong(key)}</div>
+      <div class="day-col-total">${s.total}</div>
+      <div class="day-col-breakdown">
+        <div class="day-col-line">
+          <div class="type-dot" style="background:var(--article)"></div>
+          <span class="type-label">Articles</span>
+          <span class="type-count" style="color:var(--article)">${s.articles}</span>
+        </div>
+        <div class="day-col-line">
+          <div class="type-dot" style="background:var(--podcast)"></div>
+          <span class="type-label">Podcasts</span>
+          <span class="type-count" style="color:var(--podcast)">${s.podcasts}</span>
+        </div>
       </div>
-      <div class="bar-date">${formatDayLabel(day)}</div>
     `;
-    chartEl.appendChild(group);
+    grid.appendChild(col);
   });
 
   // Sources list
@@ -832,10 +766,13 @@ function renderDashboard(allData, sources) {
     row.className = 'source-row';
     row.innerHTML = `
       <div class="source-name" title="${s.url}">${s.error ? '⚠ ' : ''}${s.title}</div>
-      <div class="source-type ${s.type === 'article' ? 'badge-article' : 'badge-podcast'} feed-type-badge">
-        ${s.type === 'article' ? 'article' : 'podcast'}
+      <div class="source-type pill ${s.type === 'article' ? 'pill-article' : 'pill-podcast'}">
+        ${s.type === 'article' ? '📰 article' : '🎙 podcast'}
       </div>
-      <div class="source-count">${s.error ? '<span style="color:#C55;font-size:10px">' + s.error + '</span>' : s.count + ' publi.'}</div>
+      <div class="source-count">${s.error
+        ? `<span style="color:#C55;font-size:10px">${s.error}</span>`
+        : `${s.count} items`
+      }</div>
     `;
     sourcesList.appendChild(row);
   });
@@ -848,16 +785,9 @@ function renderDashboard(allData, sources) {
   }, 50);
 }
 
-function formatDateShort(iso) {
-  const [y,m,d] = iso.split('-');
-  const months = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
-}
-
-function formatDayLabel(iso) {
-  const [y,m,d] = iso.split('-');
-  const months = ['j','f','m','a','m','j','j','a','s','o','n','d'];
-  return `${parseInt(d)}/${parseInt(m)}`;
+function formatDateLong(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'Europe/Paris' });
 }
 
 init();
