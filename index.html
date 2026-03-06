@@ -596,6 +596,14 @@ async function fetchFeed(url) {
   return xml;
 }
 
+function fixYear(dateStr) {
+  // Corrige les années à 2 chiffres : "06 Mar 26" → "06 Mar 2026"
+  return dateStr.replace(/(\d{1,2}\s+\w+\s+)(\d{2})(\s+\d{2}:\d{2}:\d{2})/, (_, pre, yy, time) => {
+    const full = parseInt(yy) < 50 ? '20' + yy : '19' + yy;
+    return pre + full + time;
+  });
+}
+
 function parseItems(xml) {
   const results = [];
   const items = xml.querySelectorAll('item, entry');
@@ -604,11 +612,14 @@ function parseItems(xml) {
                   || item.querySelector('published')
                   || item.querySelector('updated');
     if (!dateNode) return;
-    const d = new Date(dateNode.textContent.trim());
-    if (isNaN(d)) return;
+    const raw = dateNode.textContent.trim();
+    const d = new Date(fixYear(raw));
+    if (isNaN(d)) {
+      console.warn('Date non parseable:', raw);
+      return;
+    }
     const dayKey = toParisDateKey(d);
     const title = item.querySelector('title')?.textContent?.trim() || '';
-    // Détection podcast : enclosure avec type audio ou url .mp3
     const enclosure = item.querySelector('enclosure');
     const encType = enclosure?.getAttribute('type') || '';
     const encUrl  = enclosure?.getAttribute('url')  || '';
