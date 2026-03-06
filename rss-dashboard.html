@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSS Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --ink: #1A1A18;
+    --ink-muted: #8A8880;
+    --accent: #D4A853;
+    --accent-light: #F9F0DC;
+    --border: #E8E5DF;
+    --podcast: #4A6FA5;
+    --podcast-light: #EBF0F8;
+    --article: #5A8A5A;
+    --article-light: #EBF3EB;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 48px 40px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 56px;
+  }
+
+  .logo-area h1 {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+
+  .logo-area .title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .header-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* Feed input section */
+  .feed-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 40px;
+  }
+
+  .feed-section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 16px;
+  }
+
+  .feeds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .feed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .feed-input {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .feed-input:focus { border-color: var(--accent); }
+  .feed-input::placeholder { color: var(--ink-muted); }
+
+  .feed-type-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 400;
+    white-space: nowrap;
+    cursor: pointer;
+    border: none;
+    outline: none;
+  }
+
+  .badge-article { background: var(--article-light); color: var(--article); }
+  .badge-podcast { background: var(--podcast-light); color: var(--podcast); }
+
+  .remove-btn {
+    width: 28px; height: 28px;
+    border: none; background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .remove-btn:hover { background: #FEE; color: #C55; }
+
+  .feed-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-add {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 9px 18px;
+    border: 1px solid var(--border);
+    background: none;
+    border-radius: 6px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-add:hover { border-color: var(--ink-muted); color: var(--ink); }
+
+  .btn-fetch {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 9px 24px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-fetch:hover { background: #333; }
+  .btn-fetch:active { transform: scale(0.98); }
+  .btn-fetch:disabled { background: var(--ink-muted); cursor: not-allowed; }
+
+  /* Stats strip */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .stats-strip.visible { opacity: 1; }
+
+  .stat-card.stat-today {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .stat-card.stat-today .stat-value {
+    color: #B8860B;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+
+  /* Chart area */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    opacity: 0;
+    transition: opacity 0.4s 0.1s;
+  }
+  .chart-section.visible { opacity: 1; }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .chart-subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 4px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  /* Bar chart */
+  .bar-chart-wrap {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 100%;
+    height: 200px;
+    padding-bottom: 32px;
+    position: relative;
+  }
+
+  .bar-chart::after {
+    content: '';
+    position: absolute;
+    bottom: 32px; left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .bar-group {
+    flex: 1;
+    min-width: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bar-group.today .bars .bar { filter: brightness(1.15); }
+  .bar-group.today .bar-date {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .bar-group.today::before {
+    content: '▼';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: var(--accent);
+  }
+
+  .bar {
+    width: 44%;
+    border-radius: 3px 3px 0 0;
+    transition: opacity 0.2s;
+    cursor: default;
+    min-height: 2px;
+    position: relative;
+  }
+
+  .bar:hover::after {
+    content: attr(data-value);
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .bar-article { background: var(--article); }
+  .bar-podcast { background: var(--podcast); }
+
+  .bar-date {
+    position: absolute;
+    bottom: -26px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-muted);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* Source list */
+  .sources-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    opacity: 0;
+    transition: opacity 0.4s 0.2s;
+  }
+  .sources-section.visible { opacity: 1; }
+
+  .sources-header {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 20px;
+  }
+
+  .source-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .source-row:last-child { border-bottom: none; }
+
+  .source-name {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .source-type {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .source-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-muted);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Loading */
+  .loading-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+    z-index: 100;
+  }
+
+  .status-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 12px;
+    min-height: 16px;
+    text-align: center;
+  }
+
+  .error-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #C55;
+    background: #FEE;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<header>
+  <div class="logo-area">
+    <h1>Flux Monitor</h1>
+    <div class="title">Publications / Jour</div>
+  </div>
+  <div class="header-meta" id="headerMeta">
+    Aucune donnée chargée
+  </div>
+</header>
+
+<!-- Feed inputs -->
+<div class="feed-section">
+  <div class="feed-section-label">Flux RSS à analyser</div>
+  <div class="feeds-list" id="feedsList"></div>
+  <div class="feed-actions">
+    <button class="btn-add" onclick="addFeedRow()">+ Ajouter un flux</button>
+    <button class="btn-fetch" id="fetchBtn" onclick="fetchAll()">Analyser</button>
+  </div>
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip" id="statsStrip">
+  <div class="stat-card stat-today">
+    <div class="stat-label">Aujourd'hui</div>
+    <div class="stat-value" id="statToday">—</div>
+    <div class="stat-sub" id="statTodaySub">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total publications</div>
+    <div class="stat-value" id="statTotal">—</div>
+    <div class="stat-sub" id="statPeriod">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Articles</div>
+    <div class="stat-value" id="statArticles" style="color: var(--article)">—</div>
+    <div class="stat-sub" id="statArticlesSub">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Épisodes podcast</div>
+    <div class="stat-value" id="statPodcasts" style="color: var(--podcast)">—</div>
+    <div class="stat-sub" id="statPodcastsSub">—</div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-section" id="chartSection">
+  <div class="chart-header">
+    <div>
+      <div class="chart-title">Publications par jour</div>
+      <div class="chart-subtitle" id="chartSubtitle">—</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--article)"></div>
+        Articles
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: var(--podcast)"></div>
+        Podcasts
+      </div>
+    </div>
+  </div>
+  <div class="bar-chart-wrap">
+    <div class="bar-chart" id="barChart"></div>
+  </div>
+</div>
+
+<!-- Sources -->
+<div class="sources-section" id="sourcesSection">
+  <div class="sources-header">Sources</div>
+  <div id="sourcesList"></div>
+</div>
+
+<script>
+const DEFAULT_FEEDS = [
+  { url: 'https://www.europe1.fr/rss.xml', type: 'article' },
+  { url: 'https://feeds.audiomeans.fr/feed/1c147c6c-b4f0-46ae-a101-d0436ffa3d0e.xml', type: 'podcast' },
+  { url: 'https://feeds.audiomeans.fr/feed/d46afe4c-2f13-4f73-9a6e-b36b2e37dcbf.xml', type: 'podcast' },
+];
+
+const PROXY = 'https://api.allorigins.win/get?url=';
+
+let feedRows = [];
+
+function init() {
+  DEFAULT_FEEDS.forEach(f => addFeedRow(f.url, f.type));
+}
+
+function addFeedRow(url = '', type = 'article') {
+  const id = Date.now() + Math.random();
+  feedRows.push({ id, url, type });
+  renderFeeds();
+}
+
+function removeFeedRow(id) {
+  feedRows = feedRows.filter(r => r.id !== id);
+  renderFeeds();
+}
+
+function toggleType(id) {
+  const row = feedRows.find(r => r.id === id);
+  if (row) {
+    row.type = row.type === 'article' ? 'podcast' : 'article';
+    renderFeeds();
+  }
+}
+
+function renderFeeds() {
+  const container = document.getElementById('feedsList');
+  container.innerHTML = '';
+  feedRows.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'feed-row';
+    div.innerHTML = `
+      <input class="feed-input" type="url" placeholder="https://example.com/rss.xml" 
+        value="${row.url}" 
+        oninput="updateUrl(${row.id}, this.value)" />
+      <button class="feed-type-badge ${row.type === 'article' ? 'badge-article' : 'badge-podcast'}" 
+        onclick="toggleType(${row.id})" title="Cliquer pour changer le type">
+        ${row.type === 'article' ? '📰 article' : '🎙 podcast'}
+      </button>
+      <button class="remove-btn" onclick="removeFeedRow(${row.id})">×</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateUrl(id, val) {
+  const row = feedRows.find(r => r.id === id);
+  if (row) row.url = val;
+}
+
+function setStatus(msg) {
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+function setLoading(pct) {
+  document.getElementById('loadingBar').style.width = pct + '%';
+}
+
+async function fetchFeed(url) {
+  // Try allorigins proxy
+  const proxyUrl = PROXY + encodeURIComponent(url);
+  const resp = await fetch(proxyUrl);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  const text = data.contents;
+  if (!text) throw new Error('Contenu vide');
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'application/xml');
+  const err = xml.querySelector('parsererror');
+  if (err) throw new Error('XML invalide');
+  return xml;
+}
+
+function parseItems(xml) {
+  const items = xml.querySelectorAll('item, entry');
+  const results = [];
+  items.forEach(item => {
+    const pubDate = item.querySelector('pubDate, published, updated');
+    if (!pubDate) return;
+    const dateStr = pubDate.textContent.trim();
+    const d = new Date(dateStr);
+    if (isNaN(d)) return;
+    const dayKey = d.toISOString().slice(0, 10);
+    const title = (item.querySelector('title')?.textContent || '').trim();
+    results.push({ date: dayKey, title, dateObj: d });
+  });
+  return results;
+}
+
+function getFeedTitle(xml, fallbackUrl) {
+  const title = xml.querySelector('channel > title, feed > title');
+  return title ? title.textContent.trim() : fallbackUrl;
+}
+
+async function fetchAll() {
+  const feeds = feedRows.filter(r => r.url.trim());
+  if (!feeds.length) { setStatus('Aucun flux à analyser.'); return; }
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  setLoading(10);
+  setStatus('Chargement des flux…');
+
+  // Hide panels
+  ['statsStrip','chartSection','sourcesSection'].forEach(id => {
+    document.getElementById(id).classList.remove('visible');
+  });
+
+  const allData = []; // { dayKey, type, title, source }
+  const sources = [];
+
+  for (let i = 0; i < feeds.length; i++) {
+    const f = feeds[i];
+    setStatus(`Analyse de ${f.url.replace('https://', '').slice(0, 50)}…`);
+    setLoading(10 + (i / feeds.length) * 75);
+    try {
+      const xml = await fetchFeed(f.url);
+      const title = getFeedTitle(xml, f.url);
+      const items = parseItems(xml);
+      items.forEach(it => allData.push({ ...it, type: f.type, source: title }));
+      sources.push({ title, type: f.type, count: items.length, url: f.url });
+    } catch(e) {
+      sources.push({ title: f.url, type: f.type, count: 0, error: e.message, url: f.url });
+      console.warn('Feed error:', f.url, e);
+    }
+  }
+
+  setLoading(100);
+  setStatus('');
+
+  if (!allData.length) {
+    setStatus('Aucun élément trouvé. Vérifiez les URLs ou la connexion.');
+    btn.disabled = false;
+    setTimeout(() => setLoading(0), 500);
+    return;
+  }
+
+  renderDashboard(allData, sources);
+  btn.disabled = false;
+  setTimeout(() => setLoading(0), 600);
+}
+
+function renderDashboard(allData, sources) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayData = allData.filter(x => x.date === todayKey);
+  const todayArticles = todayData.filter(x => x.type === 'article').length;
+  const todayPodcasts = todayData.filter(x => x.type === 'podcast').length;
+  const todayTotal = todayData.length;
+
+  document.getElementById('statToday').textContent = todayTotal || '0';
+  document.getElementById('statTodaySub').textContent = 
+    todayTotal > 0 
+      ? `${todayArticles} article${todayArticles>1?'s':''} · ${todayPodcasts} podcast${todayPodcasts>1?'s':''}` 
+      : 'aucune publication';
+
+  // Group by day
+  const byDay = {};
+  allData.forEach(item => {
+    if (!byDay[item.date]) byDay[item.date] = { articles: 0, podcasts: 0 };
+    if (item.type === 'article') byDay[item.date].articles++;
+    else byDay[item.date].podcasts++;
+  });
+
+  const days = Object.keys(byDay).sort();
+  const totalArticles = allData.filter(x => x.type === 'article').length;
+  const totalPodcasts = allData.filter(x => x.type === 'podcast').length;
+  const total = allData.length;
+
+  // Stats strip
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statArticles').textContent = totalArticles;
+  document.getElementById('statPodcasts').textContent = totalPodcasts;
+
+  if (days.length > 0) {
+    const first = formatDateShort(days[0]);
+    const last = formatDateShort(days[days.length - 1]);
+    document.getElementById('statPeriod').textContent = `${first} → ${last}`;
+    document.getElementById('chartSubtitle').textContent = `${days.length} jours · ${first} → ${last}`;
+  }
+  const avgA = (totalArticles / Math.max(days.length, 1)).toFixed(1);
+  const avgP = (totalPodcasts / Math.max(days.length, 1)).toFixed(1);
+  document.getElementById('statArticlesSub').textContent = `moy. ${avgA}/jour`;
+  document.getElementById('statPodcastsSub').textContent = `moy. ${avgP}/jour`;
+
+  // Header
+  document.getElementById('headerMeta').innerHTML = 
+    `${sources.length} flux · ${total} publications<br>${days.length > 0 ? formatDateShort(days[0]) + ' → ' + formatDateShort(days[days.length-1]) : ''}`;
+
+  // Bar chart — last 30 days max
+  const chartDays = days.slice(-30);
+  const maxVal = Math.max(...chartDays.map(d => byDay[d].articles + byDay[d].podcasts), 1);
+
+  const chartEl = document.getElementById('barChart');
+  chartEl.innerHTML = '';
+
+  chartDays.forEach(day => {
+    const d = byDay[day];
+    const totalDay = d.articles + d.podcasts;
+    const pctArticle = (d.articles / maxVal) * 160;
+    const pctPodcast = (d.podcasts / maxVal) * 160;
+
+    const isToday = day === todayKey;
+    const group = document.createElement('div');
+    group.className = 'bar-group' + (isToday ? ' today' : '');
+    group.innerHTML = `
+      <div class="bars">
+        <div class="bar bar-article" data-value="${d.articles} article${d.articles>1?'s':''}" style="height:${Math.max(pctArticle,2)}px"></div>
+        <div class="bar bar-podcast" data-value="${d.podcasts} podcast${d.podcasts>1?'s':''}" style="height:${Math.max(pctPodcast,2)}px"></div>
+      </div>
+      <div class="bar-date">${formatDayLabel(day)}</div>
+    `;
+    chartEl.appendChild(group);
+  });
+
+  // Sources list
+  const sourcesList = document.getElementById('sourcesList');
+  sourcesList.innerHTML = '';
+  sources.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'source-row';
+    row.innerHTML = `
+      <div class="source-name" title="${s.url}">${s.error ? '⚠ ' : ''}${s.title}</div>
+      <div class="source-type ${s.type === 'article' ? 'badge-article' : 'badge-podcast'} feed-type-badge">
+        ${s.type === 'article' ? 'article' : 'podcast'}
+      </div>
+      <div class="source-count">${s.error ? '<span style="color:#C55;font-size:10px">' + s.error + '</span>' : s.count + ' publi.'}</div>
+    `;
+    sourcesList.appendChild(row);
+  });
+
+  // Reveal
+  setTimeout(() => {
+    document.getElementById('statsStrip').classList.add('visible');
+    document.getElementById('chartSection').classList.add('visible');
+    document.getElementById('sourcesSection').classList.add('visible');
+  }, 50);
+}
+
+function formatDateShort(iso) {
+  const [y,m,d] = iso.split('-');
+  const months = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function formatDayLabel(iso) {
+  const [y,m,d] = iso.split('-');
+  const months = ['j','f','m','a','m','j','j','a','s','o','n','d'];
+  return `${parseInt(d)}/${parseInt(m)}`;
+}
+
+init();
+</script>
+</body>
+</html>
