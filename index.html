@@ -667,15 +667,21 @@ async function fetchFeed(url) {
   return data;
 }
 
+// Retourne la date locale Paris au format YYYY-MM-DD
+function toParisDateKey(d) {
+  return d.toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' }); // fr-CA = YYYY-MM-DD
+}
+
 function parseItems(data) {
   const results = [];
   (data.items || []).forEach(item => {
     const dateStr = item.pubDate;
     if (!dateStr) return;
-    const d = new Date(dateStr);
+    // rss2json renvoie "2026-03-06 09:15:00" sans timezone → on force UTC
+    const normalized = dateStr.replace(' ', 'T') + (dateStr.includes('+') || dateStr.includes('Z') ? '' : 'Z');
+    const d = new Date(normalized);
     if (isNaN(d)) return;
-    // Use local date (Paris timezone)
-    const dayKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dayKey = toParisDateKey(d);
     results.push({ date: dayKey, title: item.title || '', dateObj: d });
   });
   return results;
@@ -735,7 +741,7 @@ async function fetchAll() {
 
 function renderDashboard(allData, sources) {
   const now = new Date();
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const todayKey = toParisDateKey(now);
   const analysisTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const analysisDate = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
