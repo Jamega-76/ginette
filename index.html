@@ -598,8 +598,6 @@ const DEFAULT_FEEDS = [
   { url: 'https://www.europe1.fr/rss.xml', type: 'article' },
 ];
 
-const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url=';
-
 let feedRows = [];
 
 function init() {
@@ -658,37 +656,47 @@ function setLoading(pct) {
   document.getElementById('loadingBar').style.width = pct + '%';
 }
 
-async function fetchFeed(url) {
-  const apiUrl = RSS2JSON + encodeURIComponent(url);
-  const resp = await fetch(apiUrl, { signal: AbortSignal.timeout(12000) });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json();
-  if (data.status !== 'ok') throw new Error(data.message || 'Erreur API');
-  return data;
-}
-
 // Retourne la date locale Paris au format YYYY-MM-DD
 function toParisDateKey(d) {
-  return d.toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' }); // fr-CA = YYYY-MM-DD
+  return d.toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
 }
 
-function parseItems(data) {
+async function fetchFeed(url) {
+  // corsproxy.io retourne le contenu brut, parfait pour le XML
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+  const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const text = await resp.text();
+  if (!text || text.trim().length === 0) throw new Error('Réponse vide');
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'application/xml');
+  if (xml.querySelector('parsererror')) throw new Error('XML invalide');
+  return xml;
+}
+
+function parseItems(xml) {
   const results = [];
-  (data.items || []).forEach(item => {
-    const dateStr = item.pubDate;
-    if (!dateStr) return;
-    // rss2json renvoie "2026-03-06 09:15:00" sans timezone → on force UTC
-    const normalized = dateStr.replace(' ', 'T') + (dateStr.includes('+') || dateStr.includes('Z') ? '' : 'Z');
-    const d = new Date(normalized);
+  // RSS 2.0 : <item> avec <pubDate>
+  // Atom : <entry> avec <published> ou <updated>
+  const items = xml.querySelectorAll('item, entry');
+  items.forEach(item => {
+    const dateNode = item.querySelector('pubDate') 
+                  || item.querySelector('published') 
+                  || item.querySelector('updated');
+    if (!dateNode) return;
+    const dateStr = dateNode.textContent.trim();
+    const d = new Date(dateStr);
     if (isNaN(d)) return;
     const dayKey = toParisDateKey(d);
-    results.push({ date: dayKey, title: item.title || '', dateObj: d });
+    const title = item.querySelector('title')?.textContent?.trim() || '';
+    results.push({ date: dayKey, title, dateObj: d });
   });
   return results;
 }
 
-function getFeedTitle(data, fallbackUrl) {
-  return data.feed?.title || fallbackUrl;
+function getFeedTitle(xml, fallbackUrl) {
+  const t = xml.querySelector('channel > title, feed > title');
+  return t ? t.textContent.trim() : fallbackUrl;
 }
 
 async function fetchAll() {
@@ -716,6 +724,7 @@ async function fetchAll() {
       const xml = await fetchFeed(f.url);
       const title = getFeedTitle(xml, f.url);
       const items = parseItems(xml);
+      console.log(`[${title}] ${items.length} items trouvés. Premiers dates:`, items.slice(0,3).map(i => i.date + ' ' + i.title.slice(0,30)));
       items.forEach(it => allData.push({ ...it, type: f.type, source: title }));
       sources.push({ title, type: f.type, count: items.length, url: f.url });
     } catch(e) {
