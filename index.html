@@ -584,15 +584,35 @@ function toParisDateKey(d) {
 }
 
 async function fetchFeed(url) {
-  // corsproxy.io retourne le contenu brut, parfait pour le XML
   const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
   const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const text = await resp.text();
   if (!text || text.trim().length === 0) throw new Error('Réponse vide');
+
+  const trimmed = text.trim();
+  console.log(`[FETCH] ${url} → début:`, trimmed.slice(0, 150));
+
+  // Vérifie que c'est bien du XML RSS/Atom
+  if (!trimmed.startsWith('<?xml') && !trimmed.startsWith('<rss') && !trimmed.startsWith('<feed')) {
+    throw new Error('Réponse non-XML: ' + trimmed.slice(0, 100));
+  }
+
+  // Parse en text/xml (plus tolérant que application/xml)
   const parser = new DOMParser();
-  const xml = parser.parseFromString(text, 'application/xml');
-  if (xml.querySelector('parsererror')) throw new Error('XML invalide');
+  const xml = parser.parseFromString(text, 'text/xml');
+
+  const pe = xml.querySelector('parseerror') || xml.getElementsByTagName('parseerror')[0];
+  if (pe) throw new Error('XML invalide');
+
+  const itemCount = xml.querySelectorAll('item, entry').length;
+  console.log(`[FETCH] ${url} → ${itemCount} items XML`);
+  if (itemCount > 0) {
+    const first = xml.querySelectorAll('item, entry')[0];
+    const pd = first.querySelector('pubDate, published, updated');
+    console.log(`[FETCH] 1ère pubDate: "${pd?.textContent?.trim()}"`);
+  }
+
   return xml;
 }
 
