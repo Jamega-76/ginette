@@ -296,13 +296,82 @@
     color: var(--muted);
     margin-bottom: 6px;
   }
+
+  .daily-banner {
+    max-width: 900px;
+    margin: 0 auto 32px;
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .daily-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .daily-card.today { border-color: rgba(232,245,66,0.4); background: rgba(232,245,66,0.05); }
+  .daily-card.yesterday { border-color: rgba(66,245,167,0.25); }
+
+  .daily-icon { font-size: 1.8rem; line-height: 1; }
+  .daily-info { flex: 1; }
+
+  .daily-count {
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .today .daily-count { color: var(--accent); }
+  .yesterday .daily-count { color: var(--accent2); }
+
+  .daily-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .daily-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Filtre Podcasts Actifs</h1>
-  <p>Europe 1 — Analyse des flux RSS Audiomeans · 179 podcasts (Podcasts + Merges)</p>
+  <p>Europe 1 — Analyse des flux RSS Audiomeans · 139 Podcasts + 40 Merges</p>
+</div>
+
+<div class="daily-banner" id="dailyBanner" style="display:none;">
+  <div class="daily-card today">
+    <div class="daily-icon">📅</div>
+    <div class="daily-info">
+      <div class="daily-count" id="d-today">—</div>
+      <div class="daily-label">Épisodes publiés aujourd'hui</div>
+      <div class="daily-date" id="d-today-date"></div>
+    </div>
+  </div>
+  <div class="daily-card yesterday">
+    <div class="daily-icon">🕐</div>
+    <div class="daily-info">
+      <div class="daily-count" id="d-yest">—</div>
+      <div class="daily-label">Épisodes publiés hier</div>
+      <div class="daily-date" id="d-yest-date"></div>
+    </div>
+  </div>
 </div>
 
 <div class="config-bar">
@@ -560,65 +629,53 @@ const PODCASTS = [
 let results = [];
 let currentFilter = 'all';
 
-function parseLatestDateFromXML(xmlText) {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlText, 'text/xml');
-    // Try RSS <item><pubDate>
-    const items = doc.querySelectorAll('item');
-    if (items.length) {
-      for (const item of items) {
-        const pub = item.querySelector('pubDate')?.textContent?.trim();
-        if (pub) { const d = new Date(pub); if (!isNaN(d)) return d; }
-      }
-    }
-    // Try Atom <entry><updated> or <published>
-    const entries = doc.querySelectorAll('entry');
-    if (entries.length) {
-      for (const entry of entries) {
-        const pub = (entry.querySelector('updated') || entry.querySelector('published'))?.textContent?.trim();
-        if (pub) { const d = new Date(pub); if (!isNaN(d)) return d; }
-      }
-    }
-    return null;
-  } catch(e) { return null; }
-}
-
 async function tryFetch(url, timeout = 9000) {
   const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return res;
 }
 
-async function fetchLastEpisodeDate(flux) {
+function parseAllDatesFromXML(xmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const dates = [];
+    // RSS items
+    doc.querySelectorAll('item').forEach(item => {
+      const pub = item.querySelector('pubDate')?.textContent?.trim();
+      if (pub) { const d = new Date(pub); if (!isNaN(d)) dates.push(d); }
+    });
+    // Atom entries
+    doc.querySelectorAll('entry').forEach(entry => {
+      const pub = (entry.querySelector('updated') || entry.querySelector('published'))?.textContent?.trim();
+      if (pub) { const d = new Date(pub); if (!isNaN(d)) dates.push(d); }
+    });
+    return dates;
+  } catch(e) { return []; }
+}
+
+async function fetchAllDates(flux) {
   const proxies = [
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, // fallback JSON wrapper
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   ];
-
   for (let i = 0; i < proxies.length; i++) {
     try {
-      const proxyUrl = proxies[i](flux);
-      const res = await tryFetch(proxyUrl, 10000);
-      let text;
-      if (i === 2) {
-        // allorigins JSON wrapper — content is in .contents
-        const json = await res.json();
-        text = json.contents;
-      } else {
-        text = await res.text();
-      }
-      if (!text || text.trim().length === 0) continue;
-      const date = parseLatestDateFromXML(text);
-      if (date) return date;
-      // XML parsed OK but no date found = feed empty
-      return null;
-    } catch(e) {
-      // try next proxy
-    }
+      const res = await tryFetch(proxies[i](flux), 10000);
+      let text = i === 2 ? (await res.json()).contents : await res.text();
+      if (!text?.trim()) continue;
+      return parseAllDatesFromXML(text);
+    } catch(e) {}
   }
-  return undefined; // all proxies failed = error
+  return null; // error
+}
+
+async function fetchLastEpisodeDate(flux) {
+  const dates = await fetchAllDates(flux);
+  if (dates === null) return undefined;
+  if (!dates.length) return null;
+  return dates.reduce((a, b) => a > b ? a : b);
 }
 
 function daysDiff(d) {
@@ -636,36 +693,68 @@ async function startAnalysis() {
   document.getElementById('statsRow').style.display = 'none';
   document.getElementById('tableSection').style.display = 'none';
   document.getElementById('actionsRow').style.display = 'none';
+  document.getElementById('dailyBanner').style.display = 'none';
 
   const total = PODCASTS.length;
   let done = 0;
+
+  // Show daily banner loading state early
+  const todayStr = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+  const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+  document.getElementById('d-today-date').textContent = todayStr;
+  document.getElementById('d-yest-date').textContent = yesterdayStr;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  let todayCount = 0;
+  let yestCount = 0;
+  const allDatesMap = {}; // id -> dates[]
 
   // Process in batches of 5
   const BATCH = 5;
   for (let i = 0; i < PODCASTS.length; i += BATCH) {
     const batch = PODCASTS.slice(i, i + BATCH);
     const batchResults = await Promise.all(batch.map(async (p) => {
-      const date = await fetchLastEpisodeDate(p.flux);
-      return { ...p, lastDate: date };
+      const allDates = await fetchAllDates(p.flux);
+      allDatesMap[p.id] = allDates;
+      const lastDate = allDates === null ? undefined : (!allDates.length ? null : allDates.reduce((a, b) => a > b ? a : b));
+      // Count episodes for today and yesterday
+      if (allDates && allDates.length) {
+        for (const d of allDates) {
+          if (d >= todayStart) todayCount++;
+          else if (d >= yesterdayStart) yestCount++;
+        }
+      }
+      return { ...p, lastDate };
     }));
     results.push(...batchResults);
     done += batch.length;
     const pct = Math.round((done / total) * 100);
     document.getElementById('progressFill').style.width = pct + '%';
     document.getElementById('progressText').textContent = `${done} / ${total} flux analysés…`;
+    // Update daily counts live
+    document.getElementById('d-today').textContent = todayCount;
+    document.getElementById('d-yest').textContent = yestCount;
+    document.getElementById('dailyBanner').style.display = 'flex';
     renderTable(days);
   }
 
   document.getElementById('progressText').textContent = `✓ Analyse terminée — ${total} podcasts vérifiés`;
   document.getElementById('statsRow').style.display = 'grid';
   document.getElementById('actionsRow').style.display = 'flex';
+  document.getElementById('dailyBanner').style.display = 'flex';
   document.getElementById('btnExport').disabled = false;
 
-  const active = results.filter(r => r.lastDate && r.lastDate !== undefined && daysDiff(r.lastDate) <= days);
-  const inactive = results.filter(r => r.lastDate && daysDiff(r.lastDate) > days);
-  const errors = results.filter(r => r.lastDate === undefined || r.lastDate === null);
+  // Stats: Podcasts only (no Merges)
+  const podsOnly = results.filter(r => r.sheet === 'Podcasts');
+  const active = podsOnly.filter(r => r.lastDate && r.lastDate !== undefined && daysDiff(r.lastDate) <= days);
+  const inactive = podsOnly.filter(r => r.lastDate && daysDiff(r.lastDate) > days);
+  const errors = podsOnly.filter(r => r.lastDate === undefined || r.lastDate === null);
 
-  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-total').textContent = podsOnly.length;
   document.getElementById('s-active').textContent = active.length;
   document.getElementById('s-inactive').textContent = inactive.length;
   document.getElementById('s-error').textContent = errors.length;
