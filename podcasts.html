@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filtre Podcasts Actifs — Europe 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --border: #2a2d35;
+    --accent: #e8f542;
+    --accent2: #42f5a7;
+    --text: #e8eaf0;
+    --muted: #5a5f70;
+    --danger: #f54263;
+    --success: #42f5a7;
+    --warn: #f5a742;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .header {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+
+  .header p {
+    color: var(--muted);
+    margin-top: 8px;
+    font-size: 0.9rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .config-bar {
+    max-width: 900px;
+    margin: 0 auto 32px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  .config-item label { color: var(--muted); }
+
+  .config-item input {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    width: 40px;
+    text-align: center;
+    outline: none;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0f11;
+  }
+  .btn-primary:hover:not(:disabled) { background: #d4df2f; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-export {
+    background: var(--accent2);
+    color: #0e0f11;
+  }
+  .btn-export:hover:not(:disabled) { background: #2de095; transform: translateY(-1px); }
+  .btn-export:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .progress-section {
+    max-width: 900px;
+    margin: 0 auto 24px;
+    display: none;
+  }
+
+  .progress-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s ease;
+    border-radius: 2px;
+  }
+
+  .progress-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .stats-row {
+    max-width: 900px;
+    margin: 0 auto 32px;
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .table-section { max-width: 900px; margin: 0 auto; display: none; }
+
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .table-title {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent2);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-active { background: rgba(66,245,167,0.15); color: var(--accent2); border: 1px solid rgba(66,245,167,0.3); }
+  .tag-inactive { background: rgba(245,66,99,0.12); color: var(--danger); border: 1px solid rgba(245,66,99,0.25); }
+  .tag-sheet { background: rgba(232,245,66,0.12); color: var(--accent); border: 1px solid rgba(232,245,66,0.25); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    position: sticky;
+    top: 0;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  tbody td {
+    padding: 9px 14px;
+    vertical-align: middle;
+  }
+
+  .td-title { font-weight: 600; max-width: 280px; }
+  .td-date { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  .td-days { font-family: 'DM Mono', monospace; font-size: 0.82rem; }
+
+  .days-ok { color: var(--accent2); }
+  .days-warn { color: var(--warn); }
+  .days-bad { color: var(--danger); }
+
+  .error-text { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--danger); }
+
+  .actions-row {
+    max-width: 900px;
+    margin: 24px auto 0;
+    display: none;
+    gap: 12px;
+  }
+
+  .filter-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn.active {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #0e0f11;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Filtre Podcasts Actifs</h1>
+  <p>Europe 1 — Analyse des flux RSS Audiomeans · 179 podcasts (Podcasts + Merges)</p>
+</div>
+
+<div class="config-bar">
+  <div class="config-item">
+    <label>Seuil d'activité :</label>
+    <input type="number" id="days" value="15" min="1" max="365" />
+    <label>jours</label>
+  </div>
+  <button class="btn btn-primary" id="btnStart" onclick="startAnalysis()">
+    ▶ Lancer l'analyse
+  </button>
+</div>
+
+<div class="progress-section" id="progressSection">
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="progress-text" id="progressText">Initialisation...</div>
+</div>
+
+<div class="stats-row" id="statsRow">
+  <div class="stat-card">
+    <div class="stat-num" id="s-total" style="color:var(--text)">—</div>
+    <div class="stat-label">Total analysés</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="s-active" style="color:var(--accent2)">—</div>
+    <div class="stat-label">Actifs ≤ seuil</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="s-inactive" style="color:var(--danger)">—</div>
+    <div class="stat-label">Inactifs / anciens</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="s-error" style="color:var(--warn)">—</div>
+    <div class="stat-label">Erreurs flux</div>
+  </div>
+</div>
+
+<div class="actions-row" id="actionsRow" style="display:none; flex-wrap:wrap; align-items:center;">
+  <div class="filter-toggle">
+    <button class="filter-btn active" onclick="setFilter('all')">Tous</button>
+    <button class="filter-btn" onclick="setFilter('active')">Actifs</button>
+    <button class="filter-btn" onclick="setFilter('inactive')">Inactifs</button>
+    <button class="filter-btn" onclick="setFilter('error')">Erreurs</button>
+  </div>
+  <button class="btn btn-export" id="btnExport" onclick="exportExcel()" disabled>
+    ⬇ Exporter Excel (actifs uniquement)
+  </button>
+</div>
+
+<div class="table-section" id="tableSection">
+  <div class="table-header">
+    <span class="table-title" id="tableTitle">Résultats</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Titre</th>
+        <th>Feuille</th>
+        <th>Dernier épisode</th>
+        <th>Âge (j)</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+const PODCASTS = [
+  {id:"d058096d-989e-4e48-831a-6b070f7d7ea7",titre:"Européennes 2024, le face-à-face",flux:"https://feeds.audiomeans.fr/feed/d058096d-989e-4e48-831a-6b070f7d7ea7.xml",sheet:"Podcasts"},
+  {id:"0edf40bd-9b3c-4428-9bfb-230f4bf98895",titre:"Le journal des médias",flux:"https://feeds.audiomeans.fr/feed/0edf40bd-9b3c-4428-9bfb-230f4bf98895.xml",sheet:"Podcasts"},
+  {id:"b3d92b2e-f448-42fd-91ff-13e605c39ccd",titre:"La France bouge",flux:"https://feeds.audiomeans.fr/feed/b3d92b2e-f448-42fd-91ff-13e605c39ccd.xml",sheet:"Podcasts"},
+  {id:"025a2a8e-8ece-4d7c-bea1-f0d1b60aca57",titre:"Ton bac de français avec Anissa",flux:"https://feeds.audiomeans.fr/feed/025a2a8e-8ece-4d7c-bea1-f0d1b60aca57.xml",sheet:"Podcasts"},
+  {id:"9562ff43-55ee-44af-95e0-db69d162ebae",titre:"Pascal Praud et vous",flux:"https://feeds.audiomeans.fr/feed/9562ff43-55ee-44af-95e0-db69d162ebae.xml",sheet:"Podcasts"},
+  {id:"283ea31f-bb34-407e-bff1-4d2245824ffe",titre:"La partition",flux:"https://feeds.audiomeans.fr/feed/283ea31f-bb34-407e-bff1-4d2245824ffe.xml",sheet:"Podcasts"},
+  {id:"80a39a48-f044-436e-ad5b-63d3154efa91",titre:"Au Cœur de l'Histoire - Des récits pour découvrir et apprendre l'Histoire",flux:"https://feeds.audiomeans.fr/feed/80a39a48-f044-436e-ad5b-63d3154efa91.xml",sheet:"Podcasts"},
+  {id:"e7f121d3-de40-4b3e-95a4-9678f75466b8",titre:"Le journal de Laurent",flux:"https://feeds.audiomeans.fr/feed/e7f121d3-de40-4b3e-95a4-9678f75466b8.xml",sheet:"Podcasts"},
+  {id:"0c7d7317-c04e-4d91-8778-ddc96f2b37f0",titre:"Mystères & Inexpliqués - Le podcast sur les affaires paranormales",flux:"https://feeds.audiomeans.fr/feed/0c7d7317-c04e-4d91-8778-ddc96f2b37f0.xml",sheet:"Podcasts"},
+  {id:"cc046be0-171d-4426-bd28-53bd852a441c",titre:"Hondelatte Raconte - Cote B",flux:"https://feeds.audiomeans.fr/feed/cc046be0-171d-4426-bd28-53bd852a441c.xml",sheet:"Podcasts"},
+  {id:"1c147c6c-b4f0-46ae-a101-d0436ffa3d0e",titre:"Hondelatte Raconte - Christophe Hondelatte",flux:"https://feeds.audiomeans.fr/feed/1c147c6c-b4f0-46ae-a101-d0436ffa3d0e.xml",sheet:"Podcasts"},
+  {id:"84ac5f62-6005-4598-8e5f-dc26766a1fbd",titre:"Hey Joe !",flux:"https://feeds.audiomeans.fr/feed/84ac5f62-6005-4598-8e5f-dc26766a1fbd.xml",sheet:"Podcasts"},
+  {id:"f0bf2839-9e00-4d91-ba3e-8f1037de1aaf",titre:"Mystères & Inexpliqués - Le podcast sur les affaires paranormales",flux:"https://feeds.audiomeans.fr/feed/f0bf2839-9e00-4d91-ba3e-8f1037de1aaf.xml",sheet:"Podcasts"},
+  {id:"8f8a3fe9-5298-409e-b938-b1f990c2c8ad",titre:"La voix est livre - Nicolas Carreau - Intégrale",flux:"https://feeds.audiomeans.fr/feed/8f8a3fe9-5298-409e-b938-b1f990c2c8ad.xml",sheet:"Podcasts"},
+  {id:"8f59879f-806a-46dd-aa79-9160e503b679",titre:"La revue de presse internationale",flux:"https://feeds.audiomeans.fr/feed/8f59879f-806a-46dd-aa79-9160e503b679.xml",sheet:"Podcasts"},
+  {id:"357e4292-65f8-415e-8010-de2e953c7a87",titre:"Hondelatte Raconte",flux:"https://feeds.audiomeans.fr/feed/357e4292-65f8-415e-8010-de2e953c7a87.xml",sheet:"Podcasts"},
+  {id:"69205003-711e-40e3-853f-95b6e584e4e8",titre:"L'entretien de Philippe Legrand",flux:"https://feeds.audiomeans.fr/feed/69205003-711e-40e3-853f-95b6e584e4e8.xml",sheet:"Podcasts"},
+  {id:"0bce4188-e6d9-41b4-8daa-5afc81ade735",titre:"Napoléon",flux:"https://feeds.audiomeans.fr/feed/0bce4188-e6d9-41b4-8daa-5afc81ade735.xml",sheet:"Podcasts"},
+  {id:"323742a9-0026-4742-b0df-83ed02fb5a73",titre:"La minute seniors",flux:"https://feeds.audiomeans.fr/feed/323742a9-0026-4742-b0df-83ed02fb5a73.xml",sheet:"Podcasts"},
+  {id:"3f623a0b-f338-4e18-ba74-c194e0e6e8bf",titre:"Face à Michel Onfray",flux:"https://feeds.audiomeans.fr/feed/3f623a0b-f338-4e18-ba74-c194e0e6e8bf.xml",sheet:"Podcasts"},
+  {id:"7165c8b3-83b9-461c-9ab7-68f534169237",titre:"Le grand debrief",flux:"https://feeds.audiomeans.fr/feed/7165c8b3-83b9-461c-9ab7-68f534169237.xml",sheet:"Podcasts"},
+  {id:"3f687e59-1037-408b-9b74-4bdd7aab5455",titre:"L'interview actu du week-end",flux:"https://feeds.audiomeans.fr/feed/3f687e59-1037-408b-9b74-4bdd7aab5455.xml",sheet:"Podcasts"},
+  {id:"c0b3ebe9-857e-449c-bfdf-e3477ba2b7b2",titre:"Au Coeur de Versailles",flux:"https://feeds.audiomeans.fr/feed/c0b3ebe9-857e-449c-bfdf-e3477ba2b7b2.xml",sheet:"Podcasts"},
+  {id:"83d10d98-2e00-4d8a-b44f-7530a5afd448",titre:"La musique... Quelle histoire !",flux:"https://feeds.audiomeans.fr/feed/83d10d98-2e00-4d8a-b44f-7530a5afd448.xml",sheet:"Podcasts"},
+  {id:"96715f04-0cdf-428c-bd07-9733a7f13515",titre:"Historiquement vôtre",flux:"https://feeds.audiomeans.fr/feed/96715f04-0cdf-428c-bd07-9733a7f13515.xml",sheet:"Podcasts"},
+  {id:"27f54c4d-f9cd-4dbe-b339-a871255aeb21",titre:"Le journal de 8h d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/27f54c4d-f9cd-4dbe-b339-a871255aeb21.xml",sheet:"Podcasts"},
+  {id:"22ed053d-cd0c-4598-babe-8da182bfd557",titre:"Libre antenne week-end - Valérie Darmon",flux:"https://feeds.audiomeans.fr/feed/22ed053d-cd0c-4598-babe-8da182bfd557.xml",sheet:"Podcasts"},
+  {id:"ac193b03-3b95-435b-8c37-a01d5eda5d1d",titre:"Le grand rendez-vous",flux:"https://feeds.audiomeans.fr/feed/ac193b03-3b95-435b-8c37-a01d5eda5d1d.xml",sheet:"Podcasts"},
+  {id:"2a7c43a3-9735-4ce1-a57d-3e931d574a6b",titre:"Le journal de 8h",flux:"https://feeds.audiomeans.fr/feed/2a7c43a3-9735-4ce1-a57d-3e931d574a6b.xml",sheet:"Podcasts"},
+  {id:"39d1fc14-8d85-4bba-afe0-2cf9e3b4053f",titre:"Une date, une histoire",flux:"https://feeds.audiomeans.fr/feed/39d1fc14-8d85-4bba-afe0-2cf9e3b4053f.xml",sheet:"Podcasts"},
+  {id:"8cb31e5b-e53c-4bc7-8cba-e4c035ee2be2",titre:"Les Pionnières",flux:"https://feeds.audiomeans.fr/feed/8cb31e5b-e53c-4bc7-8cba-e4c035ee2be2.xml",sheet:"Podcasts"},
+  {id:"d5fd5e45-f6d2-483a-9b08-821a6a42d099",titre:"Historiquement vôtre - Stéphane Bern - Intégrale",flux:"https://feeds.audiomeans.fr/feed/d5fd5e45-f6d2-483a-9b08-821a6a42d099.xml",sheet:"Podcasts"},
+  {id:"0ee58dde-db1f-4508-95c4-8e23bcc1ec9b",titre:"C'est arrivé cette semaine - Frédéric Taddeï",flux:"https://feeds.audiomeans.fr/feed/0ee58dde-db1f-4508-95c4-8e23bcc1ec9b.xml",sheet:"Podcasts"},
+  {id:"27aca435-1cd4-4c9a-a17f-c0d8fe23907a",titre:"80 ans du Débarquement : revivez l'opération",flux:"https://feeds.audiomeans.fr/feed/27aca435-1cd4-4c9a-a17f-c0d8fe23907a.xml",sheet:"Podcasts"},
+  {id:"af044fa2-fc4e-421f-a586-9fe23a0f0604",titre:"Notre-Dame de Paris, du brasier à la renaissance",flux:"https://feeds.audiomeans.fr/feed/af044fa2-fc4e-421f-a586-9fe23a0f0604.xml",sheet:"Podcasts"},
+  {id:"f6075999-870f-4171-8d68-1adebea277d9",titre:"L'interview d'Elhame Medjahed",flux:"https://feeds.audiomeans.fr/feed/f6075999-870f-4171-8d68-1adebea277d9.xml",sheet:"Podcasts"},
+  {id:"5bcb5a5b-1ac8-4232-a72a-3c76125ac61a",titre:"Le club du 31",flux:"https://feeds.audiomeans.fr/feed/5bcb5a5b-1ac8-4232-a72a-3c76125ac61a.xml",sheet:"Podcasts"},
+  {id:"2b1e500d-8b2f-47e1-8f17-cae751c4b281",titre:"L'invité média du Club de l'été - L'invité culture",flux:"https://feeds.audiomeans.fr/feed/2b1e500d-8b2f-47e1-8f17-cae751c4b281.xml",sheet:"Podcasts"},
+  {id:"1a9eb7b2-9ca3-4e12-a079-6c0f20267ff9",titre:"La table des bons vivants - Laurent Mariotte - Le dossier de la semaine",flux:"https://feeds.audiomeans.fr/feed/1a9eb7b2-9ca3-4e12-a079-6c0f20267ff9.xml",sheet:"Podcasts"},
+  {id:"77dd9729-e2b2-462a-90fa-d6b45464ed8e",titre:"L'invité politique d'Europe 1 Soir",flux:"https://feeds.audiomeans.fr/feed/77dd9729-e2b2-462a-90fa-d6b45464ed8e.xml",sheet:"Podcasts"},
+  {id:"b385c2a8-f608-46de-bd76-f872965074ee",titre:"Le zoom actu",flux:"https://feeds.audiomeans.fr/feed/b385c2a8-f608-46de-bd76-f872965074ee.xml",sheet:"Podcasts"},
+  {id:"f2303b00-a943-4ab0-8702-aa97447e6112",titre:"Top à Wall Street - Didier Hameau",flux:"https://feeds.audiomeans.fr/feed/f2303b00-a943-4ab0-8702-aa97447e6112.xml",sheet:"Podcasts"},
+  {id:"affeb8bb-374b-4577-9568-bb5155a62dbd",titre:"Europe 1 Sport - Les grands débats",flux:"https://feeds.audiomeans.fr/feed/affeb8bb-374b-4577-9568-bb5155a62dbd.xml",sheet:"Podcasts"},
+  {id:"dbada355-20e2-42ad-8901-6945bd8d4800",titre:"En quête d'esprit",flux:"https://feeds.audiomeans.fr/feed/dbada355-20e2-42ad-8901-6945bd8d4800.xml",sheet:"Podcasts"},
+  {id:"2992f009-0d87-44be-83e0-03c50a2b9010",titre:"Les récits de Stéphane Bern",flux:"https://feeds.audiomeans.fr/feed/2992f009-0d87-44be-83e0-03c50a2b9010.xml",sheet:"Podcasts"},
+  {id:"47072ed8-ed73-456e-8f78-da7c04562444",titre:"L'édito sport",flux:"https://feeds.audiomeans.fr/feed/47072ed8-ed73-456e-8f78-da7c04562444.xml",sheet:"Podcasts"},
+  {id:"1ef17db5-ad83-4c9f-84b7-449df8b38b32",titre:"CLAP ! - Intégrale",flux:"https://feeds.audiomeans.fr/feed/1ef17db5-ad83-4c9f-84b7-449df8b38b32.xml",sheet:"Podcasts"},
+  {id:"278cab38-f438-459f-bae1-8cb4f6dc5436",titre:"La note secrète",flux:"https://feeds.audiomeans.fr/feed/278cab38-f438-459f-bae1-8cb4f6dc5436.xml",sheet:"Podcasts"},
+  {id:"23446ca3-fe7a-4be3-8dca-6f8a64a06806",titre:"Europe 1 Nuit",flux:"https://feeds.audiomeans.fr/feed/23446ca3-fe7a-4be3-8dca-6f8a64a06806.xml",sheet:"Podcasts"},
+  {id:"a99c7a56-9ff6-4320-b559-d066c0977f22",titre:"Les audiences",flux:"https://feeds.audiomeans.fr/feed/a99c7a56-9ff6-4320-b559-d066c0977f22.xml",sheet:"Podcasts"},
+  {id:"82faf41f-e3ee-4e5f-80f5-42f177d513e2",titre:"L'invité actu - Dimitri Pavlenko",flux:"https://feeds.audiomeans.fr/feed/82faf41f-e3ee-4e5f-80f5-42f177d513e2.xml",sheet:"Podcasts"},
+  {id:"f06211a3-859f-4687-89b6-b86ca9d1ee32",titre:"Le journal des sports - Service gagnant",flux:"https://feeds.audiomeans.fr/feed/f06211a3-859f-4687-89b6-b86ca9d1ee32.xml",sheet:"Podcasts"},
+  {id:"f0ebc9b4-22ee-4c2c-b8f6-a12b356de2b3",titre:"Au Cœur de l'Histoire",flux:"https://feeds.audiomeans.fr/feed/f0ebc9b4-22ee-4c2c-b8f6-a12b356de2b3.xml",sheet:"Podcasts"},
+  {id:"abd60e2a-fac4-413f-bf0a-463aa19796dc",titre:"L'Heure des Pros",flux:"https://feeds.audiomeans.fr/feed/abd60e2a-fac4-413f-bf0a-463aa19796dc.xml",sheet:"Podcasts"},
+  {id:"4be07d58-3177-4e44-8c9a-9ab1eedd2c34",titre:"Punchline",flux:"https://feeds.audiomeans.fr/feed/4be07d58-3177-4e44-8c9a-9ab1eedd2c34.xml",sheet:"Podcasts"},
+  {id:"8670e1d5-b8d8-486b-9ea4-e8d5c09966f5",titre:"CLAP ! - Le grand entretien",flux:"https://feeds.audiomeans.fr/feed/8670e1d5-b8d8-486b-9ea4-e8d5c09966f5.xml",sheet:"Podcasts"},
+  {id:"4a8dccbe-3444-4c27-8f42-c26d21406bc1",titre:"L'invité actu",flux:"https://feeds.audiomeans.fr/feed/4a8dccbe-3444-4c27-8f42-c26d21406bc1.xml",sheet:"Podcasts"},
+  {id:"9045c125-c988-48d2-8e50-264bcaa38658",titre:"Europe 1 13h",flux:"https://feeds.audiomeans.fr/feed/9045c125-c988-48d2-8e50-264bcaa38658.xml",sheet:"Podcasts"},
+  {id:"a8aae616-7e41-429f-a0f5-5b8d1c322fc7",titre:"Le jour où",flux:"https://feeds.audiomeans.fr/feed/a8aae616-7e41-429f-a0f5-5b8d1c322fc7.xml",sheet:"Podcasts"},
+  {id:"d8da0358-f829-400a-a9bd-836a08c5cfcb",titre:"La pépite",flux:"https://feeds.audiomeans.fr/feed/d8da0358-f829-400a-a9bd-836a08c5cfcb.xml",sheet:"Podcasts"},
+  {id:"1019002c-dd56-48c1-808d-f1d0f5ec1113",titre:"Europe 1 Nuit week-end",flux:"https://feeds.audiomeans.fr/feed/1019002c-dd56-48c1-808d-f1d0f5ec1113.xml",sheet:"Podcasts"},
+  {id:"d1372c45-db1f-4d29-b024-2c0cf98fd89e",titre:"La table des bons vivants - Laurent Mariotte - Le questionnaire sur le grill",flux:"https://feeds.audiomeans.fr/feed/d1372c45-db1f-4d29-b024-2c0cf98fd89e.xml",sheet:"Podcasts"},
+  {id:"17652c76-f6e2-47da-b4de-ab791a8de6f9",titre:"Europe 1 Bonjour",flux:"https://feeds.audiomeans.fr/feed/17652c76-f6e2-47da-b4de-ab791a8de6f9.xml",sheet:"Podcasts"},
+  {id:"b38cbcd5-a1b8-4f4c-997a-d40c2c04f9e8",titre:"Europe 1 Matin",flux:"https://feeds.audiomeans.fr/feed/b38cbcd5-a1b8-4f4c-997a-d40c2c04f9e8.xml",sheet:"Podcasts"},
+  {id:"384fa170-b550-43ae-aec2-fb052fe5bcc8",titre:"Il n'y a pas qu'une vie dans la vie - Isabelle Morizet",flux:"https://feeds.audiomeans.fr/feed/384fa170-b550-43ae-aec2-fb052fe5bcc8.xml",sheet:"Podcasts"},
+  {id:"253dd7ed-9ade-4b80-8cf5-fea373ddd39e",titre:"L'assassinat de John Fitzgerald Kennedy",flux:"https://feeds.audiomeans.fr/feed/253dd7ed-9ade-4b80-8cf5-fea373ddd39e.xml",sheet:"Podcasts"},
+  {id:"456411ca-cea1-4a88-a9d5-98b990722ed6",titre:"L'édito politique - Alexis Brézet & Vincent Trémolet de Villers",flux:"https://feeds.audiomeans.fr/feed/456411ca-cea1-4a88-a9d5-98b990722ed6.xml",sheet:"Podcasts"},
+  {id:"03f60f8c-8247-4c78-99dc-faa175730ec3",titre:"Pronostics hippiques - Thierry Léger",flux:"https://feeds.audiomeans.fr/feed/03f60f8c-8247-4c78-99dc-faa175730ec3.xml",sheet:"Podcasts"},
+  {id:"ac3ccc00-1702-459c-b63b-e155553fe12f",titre:"Europe 1 Soir week-end",flux:"https://feeds.audiomeans.fr/feed/ac3ccc00-1702-459c-b63b-e155553fe12f.xml",sheet:"Podcasts"},
+  {id:"0ba247d7-b0e0-4c22-87f5-7c84cfdea897",titre:"CLAP ! - Le débat de la semaine",flux:"https://feeds.audiomeans.fr/feed/0ba247d7-b0e0-4c22-87f5-7c84cfdea897.xml",sheet:"Podcasts"},
+  {id:"5f798351-a176-416c-abda-8a12d48774fe",titre:"Les indispensables culture",flux:"https://feeds.audiomeans.fr/feed/5f798351-a176-416c-abda-8a12d48774fe.xml",sheet:"Podcasts"},
+  {id:"8507deba-7cf2-41e7-b57b-995c5bed0fa0",titre:"Le journal Europe 1",flux:"https://feeds.audiomeans.fr/feed/8507deba-7cf2-41e7-b57b-995c5bed0fa0.xml",sheet:"Podcasts"},
+  {id:"f37799ac-9599-4d00-9532-4e81a8ad1081",titre:"L'invité du 8h13 d'Europe 1 - Les extraits de l'interview politique",flux:"https://feeds.audiomeans.fr/feed/f37799ac-9599-4d00-9532-4e81a8ad1081.xml",sheet:"Podcasts"},
+  {id:"ad52bcfe-b206-4dfa-8c3d-8ef4318016cd",titre:"Le journal des sports - Le journal de Roland-Garros",flux:"https://feeds.audiomeans.fr/feed/ad52bcfe-b206-4dfa-8c3d-8ef4318016cd.xml",sheet:"Podcasts"},
+  {id:"34e71064-2a44-4541-bec3-4c21ddf69bfe",titre:"CLAP ! - Les news",flux:"https://feeds.audiomeans.fr/feed/34e71064-2a44-4541-bec3-4c21ddf69bfe.xml",sheet:"Podcasts"},
+  {id:"397935a1-ddef-48a3-9659-caaef04c70a3",titre:"Le portrait sonore de l'invité",flux:"https://feeds.audiomeans.fr/feed/397935a1-ddef-48a3-9659-caaef04c70a3.xml",sheet:"Podcasts"},
+  {id:"c9c019ab-6ec7-49de-a7c2-e6c50ddf2e37",titre:"Les débats d'Europe Soir week-end",flux:"https://feeds.audiomeans.fr/feed/c9c019ab-6ec7-49de-a7c2-e6c50ddf2e37.xml",sheet:"Podcasts"},
+  {id:"aae35f24-4d4f-4976-bae5-0f629c3d08f5",titre:"Europe 1 Soir",flux:"https://feeds.audiomeans.fr/feed/aae35f24-4d4f-4976-bae5-0f629c3d08f5.xml",sheet:"Podcasts"},
+  {id:"50369f66-3018-408a-b99b-c53527af175c",titre:"Les invités d'Europe Soir week-end",flux:"https://feeds.audiomeans.fr/feed/50369f66-3018-408a-b99b-c53527af175c.xml",sheet:"Podcasts"},
+  {id:"c6e434d6-801e-4849-b56e-747d6d5a51ea",titre:"Les balades du week-end",flux:"https://feeds.audiomeans.fr/feed/c6e434d6-801e-4849-b56e-747d6d5a51ea.xml",sheet:"Podcasts"},
+  {id:"d5410704-a98d-473d-a11d-ecaaba38d1fa",titre:"Les initiatives positives",flux:"https://feeds.audiomeans.fr/feed/d5410704-a98d-473d-a11d-ecaaba38d1fa.xml",sheet:"Podcasts"},
+  {id:"18d67ac2-d63b-4404-a828-179f69892fcd",titre:"L'invité inattendu",flux:"https://feeds.audiomeans.fr/feed/18d67ac2-d63b-4404-a828-179f69892fcd.xml",sheet:"Podcasts"},
+  {id:"4483fcfa-6adc-47bc-97b8-c4c78ea4951e",titre:"La revue de presse",flux:"https://feeds.audiomeans.fr/feed/4483fcfa-6adc-47bc-97b8-c4c78ea4951e.xml",sheet:"Podcasts"},
+  {id:"1cf7fe6b-8ef8-4e08-aa84-a932109f2e96",titre:"La revue de presse internationale - Les correspondants d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/1cf7fe6b-8ef8-4e08-aa84-a932109f2e96.xml",sheet:"Podcasts"},
+  {id:"f649a24a-afec-4c3b-b01d-985223ff1e74",titre:"Le coup d'œil d'Eugénie Bastié",flux:"https://feeds.audiomeans.fr/feed/f649a24a-afec-4c3b-b01d-985223ff1e74.xml",sheet:"Podcasts"},
+  {id:"55f098ba-f624-42b7-b29b-e61099ce2b79",titre:"Voyage en absurdie - Intégrale",flux:"https://feeds.audiomeans.fr/feed/55f098ba-f624-42b7-b29b-e61099ce2b79.xml",sheet:"Podcasts"},
+  {id:"8e1e218e-9eef-4ec1-97f3-2d7f70887dda",titre:"Les interviews d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/8e1e218e-9eef-4ec1-97f3-2d7f70887dda.xml",sheet:"Podcasts"},
+  {id:"bd82d8d4-469e-4620-96ee-dc0f9c913274",titre:"La photo de Match",flux:"https://feeds.audiomeans.fr/feed/bd82d8d4-469e-4620-96ee-dc0f9c913274.xml",sheet:"Podcasts"},
+  {id:"5799f0c0-d531-402b-8c09-14671fcccfb7",titre:"Sophie & Les Copains",flux:"https://feeds.audiomeans.fr/feed/5799f0c0-d531-402b-8c09-14671fcccfb7.xml",sheet:"Podcasts"},
+  {id:"404935ed-fc82-4882-bad7-6b5e62f26524",titre:"Le sport vu par les médias",flux:"https://feeds.audiomeans.fr/feed/404935ed-fc82-4882-bad7-6b5e62f26524.xml",sheet:"Podcasts"},
+  {id:"361d9d7c-191f-419f-833e-83f498149fed",titre:"Pronostics hippiques - Thierry Léger - Pari Gagnant",flux:"https://feeds.audiomeans.fr/feed/361d9d7c-191f-419f-833e-83f498149fed.xml",sheet:"Podcasts"},
+  {id:"9d4e94a2-0ac1-47bc-b677-3143eb989333",titre:"Par ici les sorties !",flux:"https://feeds.audiomeans.fr/feed/9d4e94a2-0ac1-47bc-b677-3143eb989333.xml",sheet:"Podcasts"},
+  {id:"15659738-b5a0-4a78-8d4c-4ed30b41e109",titre:"Les incontournables de Julia",flux:"https://feeds.audiomeans.fr/feed/15659738-b5a0-4a78-8d4c-4ed30b41e109.xml",sheet:"Podcasts"},
+  {id:"430804cd-0bf4-4994-9477-07e39084d327",titre:"L'entretien de Romain Desarbres",flux:"https://feeds.audiomeans.fr/feed/430804cd-0bf4-4994-9477-07e39084d327.xml",sheet:"Podcasts"},
+  {id:"502ede2c-7341-4477-a374-e27a0c64d738",titre:"L'interview d'Alexandre Le Mer",flux:"https://feeds.audiomeans.fr/feed/502ede2c-7341-4477-a374-e27a0c64d738.xml",sheet:"Podcasts"},
+  {id:"352847ef-82ae-4397-804b-5e409831b89b",titre:"La table des bons vivants - Laurent Mariotte - Intégrale",flux:"https://feeds.audiomeans.fr/feed/352847ef-82ae-4397-804b-5e409831b89b.xml",sheet:"Podcasts"},
+  {id:"7b065cde-def6-4740-b96f-571366b7e54c",titre:"Culture médias - Philippe Vandel",flux:"https://feeds.audiomeans.fr/feed/7b065cde-def6-4740-b96f-571366b7e54c.xml",sheet:"Podcasts"},
+  {id:"474e4787-d49f-4473-ab2d-9aebcf510cfa",titre:"Initiatives en France",flux:"https://feeds.audiomeans.fr/feed/474e4787-d49f-4473-ab2d-9aebcf510cfa.xml",sheet:"Podcasts"},
+  {id:"506f075f-8a18-42bf-b589-a60d7d65fef0",titre:"La Saga - Elisabeth Assayag",flux:"https://feeds.audiomeans.fr/feed/506f075f-8a18-42bf-b589-a60d7d65fef0.xml",sheet:"Podcasts"},
+  {id:"f2265776-504d-4ff6-89b0-784deacfcb38",titre:"Pop culture",flux:"https://feeds.audiomeans.fr/feed/f2265776-504d-4ff6-89b0-784deacfcb38.xml",sheet:"Podcasts"},
+  {id:"82443457-3b11-434e-99cc-9de8338c8a57",titre:"C'est dingue ça !",flux:"https://feeds.audiomeans.fr/feed/82443457-3b11-434e-99cc-9de8338c8a57.xml",sheet:"Podcasts"},
+  {id:"a7d17193-0d20-4ee0-9006-2f5ee6ba63eb",titre:"Dans l'intimité de l'Histoire",flux:"https://feeds.audiomeans.fr/feed/a7d17193-0d20-4ee0-9006-2f5ee6ba63eb.xml",sheet:"Podcasts"},
+  {id:"a58f57cc-71b0-4e5b-a349-4a8ba3479f80",titre:"L'édito politique d'Alexandre Devecchio",flux:"https://feeds.audiomeans.fr/feed/a58f57cc-71b0-4e5b-a349-4a8ba3479f80.xml",sheet:"Podcasts"},
+  {id:"e7d6f6f9-6084-49e6-80ee-82e921b40d5d",titre:"Europe 1 Matin week-end - 6-9h",flux:"https://feeds.audiomeans.fr/feed/e7d6f6f9-6084-49e6-80ee-82e921b40d5d.xml",sheet:"Podcasts"},
+  {id:"a1caf7c8-d450-4064-8e6c-1be7a9c0b210",titre:"Les recettes",flux:"https://feeds.audiomeans.fr/feed/a1caf7c8-d450-4064-8e6c-1be7a9c0b210.xml",sheet:"Podcasts"},
+  {id:"5d025ae3-c104-4b3c-b20d-0c5bdb4df97d",titre:"Balades en France",flux:"https://feeds.audiomeans.fr/feed/5d025ae3-c104-4b3c-b20d-0c5bdb4df97d.xml",sheet:"Podcasts"},
+  {id:"1aceff0b-992d-4337-9f75-3dff622fd8af",titre:"Catherine Nay - Les signatures d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/1aceff0b-992d-4337-9f75-3dff622fd8af.xml",sheet:"Podcasts"},
+  {id:"f2c63e6e-d10f-4f1c-a8bb-f75fa06c3a35",titre:"La session de rattrapage, Jean-Luc Lemoine s'amuse de la télé - La session de rattrapage",flux:"https://feeds.audiomeans.fr/feed/f2c63e6e-d10f-4f1c-a8bb-f75fa06c3a35.xml",sheet:"Podcasts"},
+  {id:"d5857065-a234-4063-8e3a-40006c973271",titre:"Le plat du jour",flux:"https://feeds.audiomeans.fr/feed/d5857065-a234-4063-8e3a-40006c973271.xml",sheet:"Podcasts"},
+  {id:"ad2ad3f8-f73a-4c6d-a283-81443ce0d6a2",titre:"L'interview conso du week-end",flux:"https://feeds.audiomeans.fr/feed/ad2ad3f8-f73a-4c6d-a283-81443ce0d6a2.xml",sheet:"Podcasts"},
+  {id:"a1cd7837-0832-4070-8e43-14d5beac123a",titre:"Dis-moi ce que tu chantes",flux:"https://feeds.audiomeans.fr/feed/a1cd7837-0832-4070-8e43-14d5beac123a.xml",sheet:"Podcasts"},
+  {id:"d083eb0b-49b3-479b-b02a-6895f18a7fab",titre:"L'invité média",flux:"https://feeds.audiomeans.fr/feed/d083eb0b-49b3-479b-b02a-6895f18a7fab.xml",sheet:"Podcasts"},
+  {id:"d46afe4c-2f13-4f73-9a6e-b36b2e37dcbf",titre:"Le journal - Europe 1 - Journal",flux:"https://feeds.audiomeans.fr/feed/d46afe4c-2f13-4f73-9a6e-b36b2e37dcbf.xml",sheet:"Podcasts"},
+  {id:"c50fd628-34ad-4eca-9def-546cb7c2ae31",titre:"La prescription culture",flux:"https://feeds.audiomeans.fr/feed/c50fd628-34ad-4eca-9def-546cb7c2ae31.xml",sheet:"Podcasts"},
+  {id:"1d71153d-7cf3-4d18-9323-7cf0ad93a1ef",titre:"L'invité de Julien Pearce",flux:"https://feeds.audiomeans.fr/feed/1d71153d-7cf3-4d18-9323-7cf0ad93a1ef.xml",sheet:"Podcasts"},
+  {id:"0bfadaff-71b8-43ce-b964-4199e425207e",titre:"L'édito du JDD",flux:"https://feeds.audiomeans.fr/feed/0bfadaff-71b8-43ce-b964-4199e425207e.xml",sheet:"Podcasts"},
+  {id:"078c3a40-6a61-47ab-bf75-5653f3a1463f",titre:"C'est arrivé demain - Frédéric Taddeï",flux:"https://feeds.audiomeans.fr/feed/078c3a40-6a61-47ab-bf75-5653f3a1463f.xml",sheet:"Podcasts"},
+  {id:"fc535eee-8df2-4f13-9d12-0d4c8c0d1154",titre:"Europe 1 soir week-end",flux:"https://feeds.audiomeans.fr/feed/fc535eee-8df2-4f13-9d12-0d4c8c0d1154.xml",sheet:"Podcasts"},
+  {id:"1732fa70-bd03-4682-940a-130fca88d6fb",titre:"Le pressing - Ombline Roche et Alexandre Le Mer",flux:"https://feeds.audiomeans.fr/feed/1732fa70-bd03-4682-940a-130fca88d6fb.xml",sheet:"Podcasts"},
+  {id:"6c45cba5-2438-4844-9233-f7ffd34f53aa",titre:"Europe 1 Midi week-end",flux:"https://feeds.audiomeans.fr/feed/6c45cba5-2438-4844-9233-f7ffd34f53aa.xml",sheet:"Podcasts"},
+  {id:"523c8004-a3c8-4f9e-a3a7-a3144303af0a",titre:"La Question du jour",flux:"https://feeds.audiomeans.fr/feed/523c8004-a3c8-4f9e-a3a7-a3144303af0a.xml",sheet:"Podcasts"},
+  {id:"76c7cbeb-73a8-41c6-9700-01818b258f27",titre:"Philippe Val - Les signatures d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/76c7cbeb-73a8-41c6-9700-01818b258f27.xml",sheet:"Podcasts"},
+  {id:"44b11857-392e-491a-ab69-69bd3543ec63",titre:"Le studio des Légendes",flux:"https://feeds.audiomeans.fr/feed/44b11857-392e-491a-ab69-69bd3543ec63.xml",sheet:"Podcasts"},
+  {id:"aefbab20-4311-449c-8d7e-12b6d1f4b5b4",titre:"Bienvenue chez vous, le podcast immobilier",flux:"https://feeds.audiomeans.fr/feed/aefbab20-4311-449c-8d7e-12b6d1f4b5b4.xml",sheet:"Podcasts"},
+  {id:"5b279160-ca91-477b-99b1-4276074257ac",titre:"Ai-je le droit ?",flux:"https://feeds.audiomeans.fr/feed/5b279160-ca91-477b-99b1-4276074257ac.xml",sheet:"Podcasts"},
+  {id:"e1a1d7e1-b669-454a-aeb7-6989caba63db",titre:"Le zapping d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/e1a1d7e1-b669-454a-aeb7-6989caba63db.xml",sheet:"Podcasts"},
+  {id:"b881f821-252c-48e7-aedb-841894c620f5",titre:"Gaspard Proust - Les signatures d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/b881f821-252c-48e7-aedb-841894c620f5.xml",sheet:"Podcasts"},
+  {id:"9a5e8977-e246-4457-b438-51a1f498d911",titre:"L'invité du 8h10 d'Europe 1 - Intégrale",flux:"https://feeds.audiomeans.fr/feed/9a5e8977-e246-4457-b438-51a1f498d911.xml",sheet:"Podcasts"},
+  {id:"0ef31c0b-e2d2-4195-a8d5-7def4c904a39",titre:"Le Terroriste",flux:"https://feeds.audiomeans.fr/feed/0ef31c0b-e2d2-4195-a8d5-7def4c904a39.xml",sheet:"Podcasts"},
+  {id:"6b9f30c8-cdf9-4ede-aada-aec380317df1",titre:"L'édito international",flux:"https://feeds.audiomeans.fr/feed/6b9f30c8-cdf9-4ede-aada-aec380317df1.xml",sheet:"Podcasts"},
+  {id:"12da158a-b9eb-49d9-a64b-82f9c717e37e",titre:"Dans les yeux d'Olivier Delacroix",flux:"https://feeds.audiomeans.fr/feed/12da158a-b9eb-49d9-a64b-82f9c717e37e.xml",sheet:"Podcasts"},
+  {id:"0f9366c9-ea8d-43d8-a7a0-135ca0c05a1d",titre:"La libre antenne - Olivier Delacroix",flux:"https://feeds.audiomeans.fr/feed/0f9366c9-ea8d-43d8-a7a0-135ca0c05a1d.xml",sheet:"Podcasts"},
+  {id:"0f56e4cd-d44d-4968-ac12-9d1159a54d4c",titre:"L'édito éco",flux:"https://feeds.audiomeans.fr/feed/0f56e4cd-d44d-4968-ac12-9d1159a54d4c.xml",sheet:"Podcasts"},
+  {id:"13847b2e-82d3-11ee-af22-df4d4a91bfdc",titre:"Les Récits extraordinaires de Pierre Bellemare",flux:"https://feeds.audiomeans.fr/feed/13847b2e-82d3-11ee-af22-df4d4a91bfdc.xml",sheet:"Podcasts"},
+  {id:"6ad36d1a-7ecf-4901-bab3-21ae5dd81386",titre:"Les interviews d'Au Coeur de l'Histoire",flux:"https://feeds.audiomeans.fr/feed/6ad36d1a-7ecf-4901-bab3-21ae5dd81386.xml",sheet:"Podcasts"},
+  {id:"2524ca60-66fb-42e5-9193-1f4fdc2eb65f",titre:"Les Voyages d'Amélia au coeur de l'Histoire",flux:"https://feeds.audiomeans.fr/feed/2524ca60-66fb-42e5-9193-1f4fdc2eb65f.xml",sheet:"Podcasts"},
+  {id:"84b3b99d-eb46-413b-9d96-595af98a3f79",titre:"Face à Philippe de Villiers",flux:"https://feeds.audiomeans.fr/feed/84b3b99d-eb46-413b-9d96-595af98a3f79.xml",sheet:"Podcasts"},
+  {id:"3e3ac251-acbc-4b7f-8721-7f1ee8948df1",titre:"Aux origines de l'antisémitisme",flux:"https://feeds.audiomeans.fr/feed/3e3ac251-acbc-4b7f-8721-7f1ee8948df1.xml",sheet:"Podcasts"},
+  {id:"083b2372-c31c-4db6-9c07-24d946820cad",titre:"L'interview éco - Alexandre Le Mer",flux:"https://feeds.audiomeans.fr/feed/083b2372-c31c-4db6-9c07-24d946820cad.xml",sheet:"Podcasts"},
+  // MERGES
+  {id:"00c97c7c-752b-4d45-96dd-e0e65de5ffaa",titre:"Le portrait de Jean-Luc Lemoine",flux:"https://feeds.audiomeans.fr/feed/00c97c7c-752b-4d45-96dd-e0e65de5ffaa.xml",sheet:"Merges"},
+  {id:"0ec7708b-cbf0-4048-971d-955b8d05bc31",titre:"La session de rattrapage, Jean-Luc Lemoine s'amuse de la télé",flux:"https://feeds.audiomeans.fr/feed/0ec7708b-cbf0-4048-971d-955b8d05bc31.xml",sheet:"Merges"},
+  {id:"0eeeca21-484d-4c7e-a1ee-86d9f08c11a5",titre:"Punchline",flux:"https://feeds.audiomeans.fr/feed/0eeeca21-484d-4c7e-a1ee-86d9f08c11a5.xml",sheet:"Merges"},
+  {id:"1838be71-3909-4891-8dcb-f786246f5900",titre:"Le club de l'été",flux:"https://feeds.audiomeans.fr/feed/1838be71-3909-4891-8dcb-f786246f5900.xml",sheet:"Merges"},
+  {id:"291b3de7-9e22-4dd3-90ca-e8f362b17490",titre:"La France bouge",flux:"https://feeds.audiomeans.fr/feed/291b3de7-9e22-4dd3-90ca-e8f362b17490.xml",sheet:"Merges"},
+  {id:"2b895ca9-c7ff-4410-9ccf-f09f63a2dc71",titre:"Le studio des légendes",flux:"https://feeds.audiomeans.fr/feed/2b895ca9-c7ff-4410-9ccf-f09f63a2dc71.xml",sheet:"Merges"},
+  {id:"3315765e-9feb-480c-a54c-fb2ef795028f",titre:"L'actu économique sur Europe 1",flux:"https://feeds.audiomeans.fr/feed/3315765e-9feb-480c-a54c-fb2ef795028f.xml",sheet:"Merges"},
+  {id:"44f6a116-20a6-44c4-98c4-b3e1bdd46dce",titre:"Le journal - Europe 1",flux:"https://feeds.audiomeans.fr/feed/44f6a116-20a6-44c4-98c4-b3e1bdd46dce.xml",sheet:"Merges"},
+  {id:"47258114-3b62-4404-a75f-42178125eec2",titre:"Europe 1 - Social club",flux:"https://feeds.audiomeans.fr/feed/47258114-3b62-4404-a75f-42178125eec2.xml",sheet:"Merges"},
+  {id:"48d3a80b-6ceb-4813-b914-3d6b4660810f",titre:"L'invité actu",flux:"https://feeds.audiomeans.fr/feed/48d3a80b-6ceb-4813-b914-3d6b4660810f.xml",sheet:"Merges"},
+  {id:"4eb59437-8f7f-48ea-af03-6e091662eefc",titre:"Pascal Praud et vous",flux:"https://feeds.audiomeans.fr/feed/4eb59437-8f7f-48ea-af03-6e091662eefc.xml",sheet:"Merges"},
+  {id:"5cafe444-ed01-4c94-af5b-59c83b901b56",titre:"Ça se plaide !",flux:"https://feeds.audiomeans.fr/feed/5cafe444-ed01-4c94-af5b-59c83b901b56.xml",sheet:"Merges"},
+  {id:"66805676-7237-437f-a221-3ec404ca6327",titre:"Europe 1 Matin week-end",flux:"https://feeds.audiomeans.fr/feed/66805676-7237-437f-a221-3ec404ca6327.xml",sheet:"Merges"},
+  {id:"691fc01d-2fb7-45af-8f16-867dad59650e",titre:"C'est arrivé cette semaine - Frédéric Taddeï",flux:"https://feeds.audiomeans.fr/feed/691fc01d-2fb7-45af-8f16-867dad59650e.xml",sheet:"Merges"},
+  {id:"6959a18f-1533-40a6-b41a-43d2cdedd753",titre:"L'actu culturelle sur Europe 1",flux:"https://feeds.audiomeans.fr/feed/6959a18f-1533-40a6-b41a-43d2cdedd753.xml",sheet:"Merges"},
+  {id:"6c0e5343-436a-42eb-bfff-5758c778a1e5",titre:"L'actu des médias sur Europe 1",flux:"https://feeds.audiomeans.fr/feed/6c0e5343-436a-42eb-bfff-5758c778a1e5.xml",sheet:"Merges"},
+  {id:"72e69fe6-de8e-465d-9d26-258f7dce8f2a",titre:"Europe 1 Soir week-end",flux:"https://feeds.audiomeans.fr/feed/72e69fe6-de8e-465d-9d26-258f7dce8f2a.xml",sheet:"Merges"},
+  {id:"74357275-1133-4003-8b54-4fd4918cb098",titre:"CLAP !",flux:"https://feeds.audiomeans.fr/feed/74357275-1133-4003-8b54-4fd4918cb098.xml",sheet:"Merges"},
+  {id:"7773697e-dd5d-4650-808b-158712520883",titre:"Hondelatte Raconte - Christophe Hondelatte",flux:"https://feeds.audiomeans.fr/feed/7773697e-dd5d-4650-808b-158712520883.xml",sheet:"Merges"},
+  {id:"7a30135d-4a69-4c53-a83b-019e98cd3cd2",titre:"La voix est livre - Nicolas Carreau",flux:"https://feeds.audiomeans.fr/feed/7a30135d-4a69-4c53-a83b-019e98cd3cd2.xml",sheet:"Merges"},
+  {id:"7ad83639-3721-4281-a652-44c471311b0e",titre:"La France bouge - Elisabeth Assayag",flux:"https://feeds.audiomeans.fr/feed/7ad83639-3721-4281-a652-44c471311b0e.xml",sheet:"Merges"},
+  {id:"7dd2a532-d19a-46bb-9ac7-a5eefff10b62",titre:"La Grande interview Europe 1 - CNews",flux:"https://feeds.audiomeans.fr/feed/7dd2a532-d19a-46bb-9ac7-a5eefff10b62.xml",sheet:"Merges"},
+  {id:"82152ddf-dc87-4e94-9825-d2b1765b4bcd",titre:"C'est arrivé demain - Frédéric Taddeï",flux:"https://feeds.audiomeans.fr/feed/82152ddf-dc87-4e94-9825-d2b1765b4bcd.xml",sheet:"Merges"},
+  {id:"8a9898fa-cb4a-4d0d-acf4-1944f50bca30",titre:"Les indispensables culture",flux:"https://feeds.audiomeans.fr/feed/8a9898fa-cb4a-4d0d-acf4-1944f50bca30.xml",sheet:"Merges"},
+  {id:"95e1d793-0d86-46d2-a546-ec95d46c68cc",titre:"Catherine Nay - Les signatures d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/95e1d793-0d86-46d2-a546-ec95d46c68cc.xml",sheet:"Merges"},
+  {id:"b4435ec9-eb84-4363-9f0a-f71678dadfe4",titre:"Les Récits extraordinaires de Pierre Bellemare",flux:"https://feeds.audiomeans.fr/feed/b4435ec9-eb84-4363-9f0a-f71678dadfe4.xml",sheet:"Merges"},
+  {id:"b59168dd-85a9-450d-8952-d6303a8febf0",titre:"Bienvenue chez vous, le podcast immobilier",flux:"https://feeds.audiomeans.fr/feed/b59168dd-85a9-450d-8952-d6303a8febf0.xml",sheet:"Merges"},
+  {id:"b8eae57f-632c-4360-85dc-605baa5fcca0",titre:"Voyage en absurdie",flux:"https://feeds.audiomeans.fr/feed/b8eae57f-632c-4360-85dc-605baa5fcca0.xml",sheet:"Merges"},
+  {id:"be2f6d97-44a3-4c5d-b415-337f04cd1c29",titre:"La revue de presse internationale - Les correspondants d'Europe 1",flux:"https://feeds.audiomeans.fr/feed/be2f6d97-44a3-4c5d-b415-337f04cd1c29.xml",sheet:"Merges"},
+  {id:"c384475c-098d-4197-a2bf-9fe0ca8a0463",titre:"Le journal des sports",flux:"https://feeds.audiomeans.fr/feed/c384475c-098d-4197-a2bf-9fe0ca8a0463.xml",sheet:"Merges"},
+  {id:"c452149d-7340-4c6d-8d8e-c6b5b4b17343",titre:"Europe 1 Week-end",flux:"https://feeds.audiomeans.fr/feed/c452149d-7340-4c6d-8d8e-c6b5b4b17343.xml",sheet:"Merges"},
+  {id:"c4910ce8-4cd2-4d8f-80a5-d6436c60dc02",titre:"Culture médias - Thomas Isle",flux:"https://feeds.audiomeans.fr/feed/c4910ce8-4cd2-4d8f-80a5-d6436c60dc02.xml",sheet:"Merges"},
+  {id:"c6189407-9571-43c4-b3f6-2de3630b066d",titre:"L'édito politique",flux:"https://feeds.audiomeans.fr/feed/c6189407-9571-43c4-b3f6-2de3630b066d.xml",sheet:"Merges"},
+  {id:"d639fb2e-2fd0-4a29-a642-63345edc41a2",titre:"Révise ton bac avec...",flux:"https://feeds.audiomeans.fr/feed/d639fb2e-2fd0-4a29-a642-63345edc41a2.xml",sheet:"Merges"},
+  {id:"d9652fc9-0a03-4379-8ed8-72e5070ebdab",titre:"La table des bons vivants - Laurent Mariotte",flux:"https://feeds.audiomeans.fr/feed/d9652fc9-0a03-4379-8ed8-72e5070ebdab.xml",sheet:"Merges"},
+  {id:"e28b2f69-830b-4f63-a448-1452ae4d8246",titre:"Pronostics hippiques - Thierry Léger",flux:"https://feeds.audiomeans.fr/feed/e28b2f69-830b-4f63-a448-1452ae4d8246.xml",sheet:"Merges"},
+  {id:"e81060fb-ff0c-45b3-bfcb-2e87b9b1f9f7",titre:"Historiquement vôtre - Stéphane Bern",flux:"https://feeds.audiomeans.fr/feed/e81060fb-ff0c-45b3-bfcb-2e87b9b1f9f7.xml",sheet:"Merges"},
+  {id:"ef5725f5-4ed2-46cb-a8de-dd21d78789d4",titre:"L'info en intégrale - Europe 1",flux:"https://feeds.audiomeans.fr/feed/ef5725f5-4ed2-46cb-a8de-dd21d78789d4.xml",sheet:"Merges"},
+  {id:"f7ce8b7e-31db-422e-8240-042c51dbf137",titre:"L'actu politique",flux:"https://feeds.audiomeans.fr/feed/f7ce8b7e-31db-422e-8240-042c51dbf137.xml",sheet:"Merges"},
+  {id:"fe59c253-d44e-4cbd-8f89-08f73577a65f",titre:"L'interview politique du week-end",flux:"https://feeds.audiomeans.fr/feed/fe59c253-d44e-4cbd-8f89-08f73577a65f.xml",sheet:"Merges"},
+];
+
+let results = [];
+let currentFilter = 'all';
+
+async function fetchLastEpisodeDate(flux) {
+  try {
+    const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(flux)}&count=1`;
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.items?.length) return null;
+    const pub = data.items[0].pubDate;
+    return pub ? new Date(pub) : null;
+  } catch(e) {
+    return undefined; // undefined = error
+  }
+}
+
+function daysDiff(d) {
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+async function startAnalysis() {
+  const btn = document.getElementById('btnStart');
+  const days = parseInt(document.getElementById('days').value) || 15;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analyse en cours...';
+
+  results = [];
+  document.getElementById('progressSection').style.display = 'block';
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('tableSection').style.display = 'none';
+  document.getElementById('actionsRow').style.display = 'none';
+
+  const total = PODCASTS.length;
+  let done = 0;
+
+  // Process in batches of 5
+  const BATCH = 5;
+  for (let i = 0; i < PODCASTS.length; i += BATCH) {
+    const batch = PODCASTS.slice(i, i + BATCH);
+    const batchResults = await Promise.all(batch.map(async (p) => {
+      const date = await fetchLastEpisodeDate(p.flux);
+      return { ...p, lastDate: date };
+    }));
+    results.push(...batchResults);
+    done += batch.length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = `${done} / ${total} flux analysés…`;
+    renderTable(days);
+  }
+
+  document.getElementById('progressText').textContent = `✓ Analyse terminée — ${total} podcasts vérifiés`;
+  document.getElementById('statsRow').style.display = 'grid';
+  document.getElementById('actionsRow').style.display = 'flex';
+  document.getElementById('btnExport').disabled = false;
+
+  const active = results.filter(r => r.lastDate && r.lastDate !== undefined && daysDiff(r.lastDate) <= days);
+  const inactive = results.filter(r => r.lastDate && daysDiff(r.lastDate) > days);
+  const errors = results.filter(r => r.lastDate === undefined || r.lastDate === null);
+
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-active').textContent = active.length;
+  document.getElementById('s-inactive').textContent = inactive.length;
+  document.getElementById('s-error').textContent = errors.length;
+
+  btn.disabled = false;
+  btn.innerHTML = '↻ Relancer';
+
+  renderTable(days);
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const days = parseInt(document.getElementById('days').value) || 15;
+  renderTable(days);
+}
+
+function renderTable(days) {
+  const tbody = document.getElementById('tableBody');
+  const section = document.getElementById('tableSection');
+  section.style.display = 'block';
+
+  let filtered = results;
+  if (currentFilter === 'active') filtered = results.filter(r => r.lastDate && r.lastDate !== undefined && daysDiff(r.lastDate) <= days);
+  else if (currentFilter === 'inactive') filtered = results.filter(r => r.lastDate && daysDiff(r.lastDate) > days);
+  else if (currentFilter === 'error') filtered = results.filter(r => r.lastDate === undefined || r.lastDate === null);
+
+  document.getElementById('tableTitle').textContent = `${filtered.length} podcast${filtered.length>1?'s':''} affichés`;
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    let dateStr = '—', daysStr = '—', statusHtml = '';
+    if (r.lastDate === undefined) {
+      statusHtml = '<span class="tag tag-inactive">Erreur flux</span>';
+      dateStr = '<span class="error-text">Erreur réseau</span>';
+    } else if (r.lastDate === null) {
+      statusHtml = '<span class="tag tag-inactive">Vide</span>';
+      dateStr = '<span class="error-text">Aucun épisode</span>';
+    } else {
+      const d = daysDiff(r.lastDate);
+      dateStr = r.lastDate.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+      const dClass = d <= days ? 'days-ok' : d <= days*2 ? 'days-warn' : 'days-bad';
+      daysStr = `<span class="${dClass}">${d}j</span>`;
+      statusHtml = d <= days
+        ? '<span class="tag tag-active">Actif</span>'
+        : '<span class="tag tag-inactive">Inactif</span>';
+    }
+    return `<tr>
+      <td class="td-date">${i+1}</td>
+      <td class="td-title">${r.titre}</td>
+      <td><span class="tag tag-sheet">${r.sheet}</span></td>
+      <td class="td-date">${dateStr}</td>
+      <td class="td-days">${daysStr}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportExcel() {
+  const days = parseInt(document.getElementById('days').value) || 15;
+  const actifs = results.filter(r => r.lastDate && r.lastDate !== undefined && daysDiff(r.lastDate) <= days);
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet: Podcasts actifs
+  const podsActifs = actifs.filter(r => r.sheet === 'Podcasts');
+  const mergesActifs = actifs.filter(r => r.sheet === 'Merges');
+
+  const makeRows = (arr) => arr.map(r => ({
+    'Audiomeans ID': r.id,
+    'Titre': r.titre,
+    'Flux': r.flux,
+    'Dernier épisode': r.lastDate.toLocaleDateString('fr-FR'),
+    'Âge (jours)': daysDiff(r.lastDate)
+  }));
+
+  const ws1 = XLSX.utils.json_to_sheet(makeRows(podsActifs));
+  ws1['!cols'] = [{wch:38},{wch:60},{wch:70},{wch:16},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Podcasts');
+
+  const ws2 = XLSX.utils.json_to_sheet(makeRows(mergesActifs));
+  ws2['!cols'] = [{wch:38},{wch:60},{wch:70},{wch:16},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Merges');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Europe1_Podcasts_Actifs_${days}j_${today}.xlsx`);
+}
+</script>
+</body>
+</html>
