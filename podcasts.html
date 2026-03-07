@@ -721,8 +721,8 @@ async function startAnalysis() {
       const allDates = await fetchAllDates(p.flux);
       allDatesMap[p.id] = allDates;
       const lastDate = allDates === null ? undefined : (!allDates.length ? null : allDates.reduce((a, b) => a > b ? a : b));
-      // Count episodes for today and yesterday
-      if (allDates && allDates.length) {
+      // Count episodes for today and yesterday — Podcasts only, no Merges
+      if (p.sheet === 'Podcasts' && allDates && allDates.length) {
         for (const d of allDates) {
           if (d >= todayStart) todayCount++;
           else if (d >= yesterdayStart) yestCount++;
