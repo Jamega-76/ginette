@@ -783,9 +783,16 @@ function renderTable(days) {
   else if (currentFilter === 'inactive') filtered = results.filter(r => r.lastDate && daysDiff(r.lastDate) > days);
   else if (currentFilter === 'error') filtered = results.filter(r => r.lastDate === undefined || r.lastDate === null);
 
+  // Separate errors/empty from dated results
+  const withDate = filtered.filter(r => r.lastDate && r.lastDate !== undefined);
+  const withError = filtered.filter(r => r.lastDate === undefined || r.lastDate === null);
+
+  // Sort dated results by most recent first
+  withDate.sort((a, b) => b.lastDate - a.lastDate);
+
   document.getElementById('tableTitle').textContent = `${filtered.length} podcast${filtered.length>1?'s':''} affichés`;
 
-  tbody.innerHTML = filtered.map((r, i) => {
+  const makeRow = (r, i) => {
     let dateStr = '—', daysStr = '—', statusHtml = '';
     if (r.lastDate === undefined) {
       statusHtml = '<span class="tag tag-inactive">Erreur flux</span>';
@@ -810,7 +817,19 @@ function renderTable(days) {
       <td class="td-days">${daysStr}</td>
       <td>${statusHtml}</td>
     </tr>`;
-  }).join('');
+  };
+
+  let html = withDate.map((r, i) => makeRow(r, i + 1)).join('');
+
+  // Error zone separator
+  if (withError.length > 0) {
+    html += `<tr><td colspan="6" style="padding:16px 14px 8px; font-family:'DM Mono',monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); border-top:2px solid var(--border);">
+      ⚠ Flux en erreur ou vides — ${withError.length} podcast${withError.length>1?'s':''}
+    </td></tr>`;
+    html += withError.map((r, i) => makeRow(r, withDate.length + i + 1)).join('');
+  }
+
+  tbody.innerHTML = html;
 }
 
 function exportExcel() {
